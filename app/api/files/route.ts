@@ -2,6 +2,71 @@ import { NextResponse, type NextRequest } from "next/server";
 import { pinata } from "@/utils/config"; // Pinata configuration
 import { getContract } from "@/utils/contract"; // Contract helper
 import { parseEther } from "ethers";
+import { v4 as uuidv4 } from "uuid"; // Install 'uuid' for generating unique IDs
+import path from "path";
+import { promisify } from "util";
+import { exec } from "child_process";
+import os from "os";
+import { promises as fs } from 'fs'
+
+
+const AWS = require('aws-sdk');
+//const fs = require('fs');
+AWS.config.update({region:'us-east-1'});
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
+
+async function removePII(fileBuffer: ArrayBuffer): Promise<{
+  piiFindings: string[],
+  processedFilePath: string
+}> {
+  try {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pii-'));
+    const tempFilePath = path.join(tempDir, 'input.csv');
+    const outputFilePath = path.join(tempDir, 'output.csv');
+    
+    await fs.writeFile(tempFilePath, Buffer.from(fileBuffer));
+    
+    const pythonScript = path.join(process.cwd(), 'scripts', 'remove_pii.py');
+    const execAsync = promisify(exec);
+    console.log('Executing Python script...');
+    const { stdout, stderr } = await execAsync(
+      `python "${pythonScript}" "${tempFilePath}" "${outputFilePath}"`
+    );
+    
+    // Log all output for debugging
+    if (stderr) {
+      console.log('Python script debug output:', stderr);
+    }
+    if (stdout) {
+      console.log('Python script findings:', stdout);
+    }
+
+    // Verify output file exists and has content
+    const outputExists = await fs.stat(outputFilePath).catch(() => false);
+    if (!outputExists) {
+      throw new Error('Output file was not created');
+    }
+
+    const outputContent = await fs.readFile(outputFilePath, 'utf-8');
+    console.log('Output file first 100 chars:', outputContent.slice(0, 100));
+    
+    const piiFindings = stdout
+      .split('\n')
+      .filter(line => line.startsWith('Found'))
+      .map(line => line.trim());
+    
+    return {
+      piiFindings,
+      processedFilePath: outputFilePath
+    };
+  } catch (error) {
+    console.error('Error in PII removal:', error);
+    throw new Error('Failed to process PII removal');
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +77,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as unknown as File;
     const price = formData.get("price") as string;
     const description = formData.get("description") as string;
-
+    
     console.log("Parsed FormData:", { file, price, description });
 
     if (!file || !price || !description) {
@@ -20,30 +85,77 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Step 1: Upload file to Pinata
-    console.log("Uploading file to Pinata...");
-
-    const metadata = {
-      name: file.name,
-      keyvalues: {
-        contentType: file.type,
-        originalName: file.name,
-        fileSize: file.size.toString(),
-        uploadDate: new Date().toISOString()
+    // PII
+    let processedFile = file;
+    let piiFindings: string[] = [];
+    // Check if file is CSV
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      console.log("Processing CSV file for PII...");
+      try {
+        const fileBuffer = await file.arrayBuffer();
+        const { piiFindings: findings, processedFilePath } = await removePII(fileBuffer);
+        
+        piiFindings = findings;
+        
+        // Read the processed file
+        const processedBuffer = await fs.readFile(processedFilePath);
+        processedFile = new File([processedBuffer], file.name, { type: 'text/csv' });
+        
+        console.log("PII processing complete. Findings:", piiFindings);
+      } catch (error) {
+        console.error("Error processing PII:", error);
+        return NextResponse.json({ error: "PII processing failed" }, { status: 500 });
       }
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Generate a unique file name for S3
+    const fileName = `${uuidv4()}_${file.name}`;
+    const uploadFile = async (bucketName: string) => {
+      const params = {
+        Bucket: bucketName,
+        Key: fileName,
+        Body: buffer,
+        ContentType: file.type, // Set content type for proper file handling in S3
+      };
+
+      return s3.upload(params).promise(); // Return a promise to wait for the upload
     };
-
-    console.log("Uploading file to Pinata with metadata:", metadata);
-    const fileUploadResponse = await pinata.upload.file(file);
-    console.log("Pinata upload response:", fileUploadResponse);
-
-    const cid = fileUploadResponse.IpfsHash; // Extract the CID
-    console.log("File uploaded to Pinata with CID:", cid);
-
-
-    // Simplified response to indicate success
-    //return NextResponse.json({ message: "Data listed successfully." });
-    return NextResponse.json({cid});
+    
+    const bucketName = process.env.S3_BUCKET_NAME as string;
+    const uploadResponse = await uploadFile(bucketName);
+    
+    console.log(`File uploaded successfully: ${uploadResponse.Location}`);
+    
+    const lambda = new AWS.Lambda();
+    var cid;
+    const params = {
+      FunctionName: 'pinataUpload', 
+      InvocationType: 'RequestResponse', // Optional: 'Event' for async, 'RequestResponse' for sync
+      Payload: JSON.stringify({ fileName }), // Pass the fileName as a payload
+    };
+  
+    try {
+      const response = await lambda.invoke(params).promise();
+      const responsePayload = JSON.parse(response.Payload);
+  
+      if (responsePayload.statusCode === 200) {
+        const result = JSON.parse(responsePayload.body);
+        console.log('CID:', result.cid);
+        cid = result.cid
+        
+      } else {
+        console.error('Lambda returned an error:', responsePayload);
+      }
+    } catch (error) {
+      console.error('Error invoking Lambda function:', error);
+    }
+    
+  
+    // Return the CID to the frontend
+    return NextResponse.json({ cid });
   } catch (error) {
     console.error("Error in /api/files route:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -91,6 +203,7 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+
 export async function GET(request: NextRequest) {
   try {
     // Get CID from query params
@@ -100,60 +213,44 @@ export async function GET(request: NextRequest) {
     if (!cid) {
       return NextResponse.json({ error: "Missing CID parameter" }, { status: 400 });
     }
-
-    console.log("Fetching metadata from Pinata for CID:", cid);
+    const lambda = new AWS.Lambda();
+    const params = {
+      FunctionName: 'pinataGet', // Ensure this matches your deployed Lambda function name
+      InvocationType: 'RequestResponse',
+      Payload: JSON.stringify({ cid }),
+    };
 
     try {
-      // First fetch metadata
-      const metadataResponse = await fetch(
-        `https://api.pinata.cloud/data/pinList?hashContains=${cid}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.PINATA_JWT}`
-          }
-        }
-      );
+      // Invoke Lambda function to fetch metadata
+      const lambdaResponse = await lambda.invoke(params).promise();
+      const lambdaPayload = JSON.parse(lambdaResponse.Payload);
+      const metadata = JSON.parse(lambdaPayload.body);
 
-      if (!metadataResponse.ok) {
-        throw new Error('Failed to fetch metadata');
+      if (lambdaPayload.statusCode !== 200) {
+        throw new Error("Metadata fetch failed");
       }
 
-      const metadataJson = await metadataResponse.json();
-      const fileMetadata = metadataJson.rows[0]?.metadata;
-      
-      // Get the content type and original filename from metadata
-      const contentType = fileMetadata?.keyvalues?.contentType || '';
-      const originalName = fileMetadata?.keyvalues?.originalName || `file-${cid}`;
-
-      // Construct the full URL to access the file
+      const contentType = metadata?.contentType || '';
+      const originalName = metadata?.originalName || `file-${cid}`;
       const fileUrl = `${process.env.NEXT_PUBLIC_GATEWAY_URL}/files/${cid}?download=true`;
 
-      // Create response with redirect and proper headers
       const response = NextResponse.redirect(fileUrl);
 
-      // Add content type and filename headers if metadata was found
+      // Add headers based on metadata
       if (contentType) {
         response.headers.set('Content-Type', contentType);
       }
       response.headers.set('Content-Disposition', `attachment; filename="${originalName}"`);
 
-      console.log("Redirecting to file with metadata:", {
-        contentType,
-        originalName,
-        fileUrl
-      });
-
       return response;
 
-    } catch (metadataError) {
-      console.error("Error fetching metadata:", metadataError);
-      // If metadata fetch fails, still try to download the file
-      console.log("Proceeding with download without metadata");
+    } catch (lambdaError) {
+      console.error("Error calling Lambda function:", lambdaError);
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_GATEWAY_URL}/files/${cid}?download=true`);
     }
-
+    
   } catch (error) {
-    console.error("Error fetching data from Pinata:", error);
+    console.error("Error handling request:", error);
     return NextResponse.json({ error: "Failed to fetch file" }, { status: 500 });
   }
 }
