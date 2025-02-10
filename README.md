@@ -14,7 +14,7 @@ https://drive.google.com/drive/folders/1BvZfJq_DWqc0jNtEwkINxwZiaCyrKW3d?usp=dri
 - Use this link: https://support.metamask.io/start/getting-started-with-metamask/
 5. Next, we have to connect to a testnet.
 - https://polygon.technology/blog/introducing-the-amoy-testnet-for-polygon-pos
-6. Once configured, use this faucet to get tokens
+6. Once configured, use this faucet to get tokens.
 - https://faucet.polygon.technology/
   
 
