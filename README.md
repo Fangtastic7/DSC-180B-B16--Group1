@@ -5,16 +5,12 @@ Please follow the step below for reproduction.
 1. Be noticed, the files we shared inside repo for frontend is not sufficient to reproduce the project, those are for code reference only. because our folder is too large for the github repo, so we have to share the complete file using google drive link, Please download the folder here: (It may take you 5-10 minutes to download)
 https://drive.google.com/drive/folders/1BvZfJq_DWqc0jNtEwkINxwZiaCyrKW3d?usp=drive_link
 
-2. Here are the packages you need to setup:
-- npm install uuid
-- npm install aws-sdk
-
-3. Then, go to the directory `pinata-nextjs` in the terminal, run `npm run dev`, you should be able to see the page at http://localhost:3001/
-4. Once the local server is setup, it is important to setup Metamask
+2. Then, go to the directory `pinata-nextjs` in the terminal, run `npm run dev`, you should be able to see the page at http://localhost:3001/
+3. Once the local server is setup, it is important to setup Metamask
 - Use this link: https://support.metamask.io/start/getting-started-with-metamask/
-5. Next, we have to connect to a testnet.
+4. Next, we have to connect to a testnet.
 - https://polygon.technology/blog/introducing-the-amoy-testnet-for-polygon-pos
-6. Once configured, use this faucet to get tokens.
+5. Once configured, use this faucet to get tokens.
 - https://faucet.polygon.technology/
   
 
