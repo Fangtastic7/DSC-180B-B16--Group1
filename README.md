@@ -9,5 +9,5 @@ https://drive.google.com/drive/folders/1BvZfJq_DWqc0jNtEwkINxwZiaCyrKW3d?usp=dri
 - npm install uuid
 - npm install aws-sdk
 
-3. Then, go to the directory pinata-nextjs in the terminal, run npm run dev, you should be able to see the page at http://localhost:3001/ 
+3. Then, go to the directory `pinata-nextjs` in the terminal, run `npm run dev`, you should be able to see the page at http://localhost:3001/
 
