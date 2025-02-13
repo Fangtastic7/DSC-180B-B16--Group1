@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/uti
 import { Button } from "@/utils/components/ui/button";
 import { Input } from "@/utils/components/ui/input";
 import { Textarea } from "@/utils/components/ui/textarea";
+//import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
 import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store } from 'lucide-react';
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
+
 
 declare global {
   interface Window{
@@ -33,6 +35,9 @@ export default function Home() {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [fetchingId, setFetchingId] = useState<string | null>(null);
   const [downloadedItems, setDownloadedItems] = useState<Set<string>>(new Set());
+  const [network, setNetwork] = useState<string>("");
+  const [currency, setCurrency] = useState<string>("");
+  const [balance, setBalance] = useState<string>("");
 
   useEffect(() => {
     initializeEthers();
@@ -107,7 +112,30 @@ export default function Home() {
           // Create provider and contract instances
           const provider = new ethers.BrowserProvider(window.ethereum);
           setProvider(provider);
-  
+
+          // Fetch network and currency
+          const network = await provider.getNetwork();
+          setNetwork(network.name);
+          
+        // Fetch native currency symbol
+        const nativeCurrencySymbol = (() => {
+          switch (Number(network.chainId)) {
+            case 1: return 'ETH'; // Ethereum Mainnet
+            case 3: return 'ETH'; // Ropsten Testnet
+            case 4: return 'ETH'; // Rinkeby Testnet
+            case 5: return 'ETH'; // Goerli Testnet
+            case 42: return 'ETH'; // Kovan Testnet
+            case 80002: return 'POL'; //Amoy Testnet
+            // Add other networks as needed
+            default: return 'ETH';
+          }
+        })();
+        setCurrency(nativeCurrencySymbol);
+    
+          // Fetch balance
+          const balance = await provider.getBalance(accounts[0]);
+          setBalance(formatEther(balance));
+
           //const signer = provider.getSigner();
           const contract = await getContract();
           setContract(contract);
@@ -115,7 +143,11 @@ export default function Home() {
           // Listen for account changes
           window.ethereum.on('accountsChanged', function (accounts: string[]) {
             setAccount(accounts[0]);
-          });
+            // Fetch balance for the new account
+        provider.getBalance(accounts[0]).then(balance => {
+          setBalance(formatEther(balance));
+        });
+      });
         } catch (error) {
           console.error("Error initializing ethers:", error);
         }
@@ -186,6 +218,7 @@ export default function Home() {
     };
 
   const uploadFile = async () => {
+    let uploadedCID = null;
     try {
       if (!file || !price || !description) {
         alert("Please fill in all fields and connect your wallet");
@@ -206,6 +239,7 @@ export default function Home() {
       });
 
       const { cid } = await response.json();
+      uploadedCID = cid;
       
       // Step 2: Interact with the smart contract
       console.log("Getting smart contract instance...");
@@ -236,6 +270,23 @@ export default function Home() {
     } catch (error) {
       console.error("Error in uploadFile:", error);
       setUploading(false);
+      //removes from pinata if failed transaction
+      const unpinResponse = await fetch(`/api/files?cid=${uploadedCID}`, {
+        method: 'DELETE'
+      });
+      
+      if (!unpinResponse.ok) {
+        const errorData = await unpinResponse.json();
+        throw new Error(errorData.error || 'Failed to delete file');
+      }
+
+        // Clear form
+        setFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        setPrice("");
+        setDescription("");
       alert("Error uploading file");
     }
   };
@@ -389,19 +440,35 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Blockchain Data Marketplace</h1>
-          
-          {!account ? (
-            <Button onClick={connectWallet} variant="outline">
-              Connect Wallet
-            </Button>
-          ) : (
-            <p className="text-gray-400">
-              Connected: {account}
-            </p>
-          )}
-        </div>
+      <div className="flex justify-between items-center mb-8">
+  <div className="flex items-center">
+    <div className="bg-gray-900 flex items-center">
+      <img 
+        src="icon.ico"
+        className="h-10 w-25" 
+      />
+    </div>
+  </div>
+
+  
+  {!account ? (
+          <Button onClick={connectWallet} variant="outline">
+            Connect Wallet
+          </Button>
+        ) : (
+          <div className="flex items-center text-white space-x-4">
+            <div className="flex items-center space-x-2">
+              <span>{network.toUpperCase()}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span>{parseFloat(balance).toFixed(2)} {currency}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span>{account.slice(0, 6)}...{account.slice(-4)}</span>
+            </div>
+          </div>
+        )}
+      </div>
 
         {error && (
           <Alert variant="destructive" className="mb-6">
