@@ -325,25 +325,46 @@ const CONTRACT_ABI = [
 	}
 ]
 
-let contract: Contract | null = null; 
+let contract: Contract | null = null;
+let readOnlyContract: Contract | null = null;
 
-export const getContract = async (): Promise<Contract> => {
-
-	if (contract) {
-		return contract;
-	}
-
-	if (typeof window === 'undefined' || !window.ethereum) {
-		throw new Error("MetaMask is not installed");
-	  }
-
-	  try {
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+export const getContract = async (requireSigner: boolean = false): Promise<Contract> => {
+    // If we need a signer and have a connected contract, return it
+    if (requireSigner && contract) {
         return contract;
-    } catch (error) {
-        console.error("Error initializing contract:", error);
-        throw error;
+    }
+
+    // If we don't need a signer and have a read-only contract, return it
+    if (!requireSigner && readOnlyContract) {
+        return readOnlyContract;
+    }
+
+    // Create a read-only provider using your RPC URL
+    const readOnlyProvider = new JsonRpcProvider(process.env.NEXT_PUBLIC_AMOY_RPC_URL);
+
+    if (requireSigner) {
+        // Check if MetaMask is installed when we need a signer
+        if (typeof window === 'undefined' || !window.ethereum) {
+            throw new Error("MetaMask is not installed");
+        }
+
+        try {
+            const provider = new BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+            return contract;
+        } catch (error) {
+            console.error("Error initializing contract with signer:", error);
+            throw error;
+        }
+    } else {
+        // Use read-only provider when no signer is needed
+        try {
+            readOnlyContract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readOnlyProvider);
+            return readOnlyContract;
+        } catch (error) {
+            console.error("Error initializing read-only contract:", error);
+            throw error;
+        }
     }
 };

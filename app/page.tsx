@@ -40,7 +40,8 @@ export default function Home() {
   const [balance, setBalance] = useState<string>("");
 
   useEffect(() => {
-    initializeEthers();
+    //initializeEthers();
+    loadItems();
   }, []);
 
   useEffect(() => {
@@ -65,11 +66,11 @@ export default function Home() {
     try {
       setLoading(true);
       console.log(`Fetching inventory for user: ${account}`);
-  
+      const contract = await getContract(true);
       // Fetch purchased item IDs from smart contract
       const purchasedItemIds = await contract.getUserPurchases(account);
       console.log("Purchased Item IDs:", purchasedItemIds);
-  
+      
       // Fetch item details for each purchased item
       const items = await Promise.all(
         purchasedItemIds.map(async (id) => {
@@ -98,104 +99,116 @@ export default function Home() {
     }
   };
 
-    // Initialize ethers and contract
-    const initializeEthers = async () => {
-      if (typeof window.ethereum !== "undefined") {
-        try {
-          console.log('RPC URL:', process.env.NEXT_PUBLIC_AMOY_RPC_URL);
-          console.log('Private Key length:', process.env.NEXT_PUBLIC_PRIVATE_KEY?.length);
-
-          // Request account access
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          setAccount(accounts[0]);
+  const initializeEthers = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        console.log('RPC URL:', process.env.NEXT_PUBLIC_AMOY_RPC_URL);
+        console.log('Private Key length:', process.env.NEXT_PUBLIC_PRIVATE_KEY?.length);
   
-          // Create provider and contract instances
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          setProvider(provider);
-
-          // Fetch network and currency
-          const network = await provider.getNetwork();
-          setNetwork(network.name);
-          
-        // Fetch native currency symbol
+        // Create provider instance
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(provider);
+  
+        // Fetch network and currency
+        const network = await provider.getNetwork();
+        setNetwork(network.name);
+  
+        // Set native currency symbol based on network
         const nativeCurrencySymbol = (() => {
           switch (Number(network.chainId)) {
-            case 1: return 'ETH'; // Ethereum Mainnet
-            case 3: return 'ETH'; // Ropsten Testnet
-            case 4: return 'ETH'; // Rinkeby Testnet
-            case 5: return 'ETH'; // Goerli Testnet
-            case 42: return 'ETH'; // Kovan Testnet
-            case 80002: return 'POL'; //Amoy Testnet
-            // Add other networks as needed
+            case 1: return 'ETH';
+            case 3: return 'ETH';
+            case 4: return 'ETH';
+            case 5: return 'ETH';
+            case 42: return 'ETH';
+            case 80002: return 'POL';
             default: return 'ETH';
           }
         })();
         setCurrency(nativeCurrencySymbol);
-    
-          // Fetch balance
-          const balance = await provider.getBalance(accounts[0]);
-          setBalance(formatEther(balance));
 
-          //const signer = provider.getSigner();
-          const contract = await getContract();
-          setContract(contract);
+        // Initialize contract
+        const contract = await getContract();
+        setContract(contract);
   
-          // Listen for account changes
-          window.ethereum.on('accountsChanged', function (accounts: string[]) {
+        // Listen for account changes
+        window.ethereum.on('accountsChanged', async (accounts: string[]) => {
+          if (accounts.length === 0) {
+            setAccount("");
+            setBalance("");
+            setContract(null);
+            setInventoryItems([]);
+          } else {
             setAccount(accounts[0]);
-            // Fetch balance for the new account
-        provider.getBalance(accounts[0]).then(balance => {
-          setBalance(formatEther(balance));
+            const balance = await provider.getBalance(accounts[0]);
+            setBalance(formatEther(balance));
+            const contract = await getContract();
+            setContract(contract);
+          }
         });
-      });
-        } catch (error) {
-          console.error("Error initializing ethers:", error);
+
+        return provider;
+      } catch (error) {
+        console.error("Error initializing ethers:", error);
+        if (error.code === 4001) {
+          console.log("User rejected the request");
+        } else {
+          alert("An error occurred. Please try again.");
         }
-      } else {
-        alert("Please install MetaMask!");
       }
-    };
+    } else {
+      alert("Please install MetaMask!");
+    }
+  };
 
   // Connect wallet function
   const connectWallet = async () => {
     try {
+      // Initialize ethers first
+      const provider = await initializeEthers();
+      if (!provider) return;
+
+      // Request account access
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (accounts.length === 0) {
+        console.log("No accounts found");
+        return;
+      }
+
+      // Set account and fetch balance
       setAccount(accounts[0]);
+      const balance = await provider.getBalance(accounts[0]);
+      setBalance(formatEther(balance));
+
     } catch (error) {
       console.error("Error connecting wallet:", error);
+      alert("Failed to connect wallet. Please try again.");
     }
   };
 
   // Load items from blockchain
   const loadItems = async () => {
-    if (!contract) {
-      console.log("Contract not initialized");
-      return;
-    }
-    
     try {
       setLoading(true);
-      const itemCount = await contract.itemCount();
-      
-      console.log('Item count:', itemCount.toString());
-      const items = [];
-      console.log();
+      // Initialize a read-only contract instance if needed
+      const contract = await getContract(false);
 
+      const itemCount = await contract.itemCount();
+      console.log('Item count:', itemCount.toString());
+      
+      const items = [];
       for (let i = 0; i < itemCount; i++) {
         const status = await contract.getStatus(i);
         if(status){
-        console.log(`Fetching item ${i}..s.`);
-        const item = await contract.getDataItem(i);
-          
-        console.log(`Item ${i}:`, item);
-            items.push({
-              id: i,
-              seller: item[0],
-              price: item[1],
-              description: item[2],
-              salesCount: toNumber(item[3]),
-            });
-          }
+          const item = await contract.getDataItem(i);
+          items.push({
+            id: i,
+            seller: item[0],
+            price: item[1],
+            description: item[2],
+            salesCount: toNumber(item[3]),
+          });
+        }
       }
   
       console.log('Final items array:', items);
@@ -329,20 +342,13 @@ export default function Home() {
   };
 
   const buyData = async (itemId) => {
-    if (!contract) {
-      console.error("Contract not initialized");
-      alert("Contract is not connected.");
-      return;
-    }
-  
     if (!account) {
-      console.error("Wallet not connected");
-      alert("Please connect your wallet.");
+      alert("Please connect your wallet to make a purchase.");
       return;
     }
-  
     try {
       setLoading(true);
+      const contract = await getContract(true);
 
       // // Fetch past purchase events for the current user
       // const eventFilter = contract.filters.DataPurchased(itemId, account); 
@@ -363,6 +369,7 @@ export default function Home() {
   
       console.log(`Fetched item price: ${correctPrice.toString()} Wei`);
   
+      
       // Call the contract function with the correct price
       const transaction = await contract.buyData(itemId, {
         value: correctPrice,  // Send exact price fetched from contract
@@ -376,6 +383,9 @@ export default function Home() {
       console.log("Transaction confirmed!");
       alert(`Purchase successful! Item ID: ${itemId}`);
   
+      // Update balance after purchase
+      await updateBalance(account);
+
       // Refresh inventory after purchase
       // fetchInventory();
   
@@ -399,7 +409,7 @@ export default function Home() {
       
       //Interact with the smart contract
       console.log("Getting smart contract instance...");
-      const contract = await getContract();
+      const contract = await getContract(true);
       console.log("Smart contract instance retrieved.");
       // deList the data on the blockchain
       console.log("Calling deListData on the smart contract...");
@@ -437,6 +447,117 @@ export default function Home() {
     setFile(e.target?.files?.[0] || null);
   };
 
+  const updateBalance = async (account: string) => {
+    if (provider) {
+      const balance = await provider.getBalance(account);
+      setBalance(formatEther(balance));
+    }
+  };
+
+  const showLoginPopup = () => {
+    alert("Please log in to make a purchase.");
+  };
+
+  const renderLockScreen = () => (
+    <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center z-10" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+      <div className="flex flex-col items-center space-y-4">
+        <img src="/images/lock_icon.ico" alt="Lock Icon" className="h-20 w-20" />
+        <p className="text-white text-xl font-semibold text-center">Please log in to access this feature.</p>
+      </div>
+    </div>
+  );
+
+  const renderInventoryContent = () => (
+    <div className="relative min-h-[485px]"> {/* Added min-height */}
+      {!account && renderLockScreen()}
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
+        {loading ? (
+          <div className="col-span-full flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : inventoryItems.length > 0 ? (
+          inventoryItems.map((item, index) => (
+            <Card key={`${item.id}-${index}`}>
+              <CardHeader>
+                <CardTitle>{item.description}</CardTitle>
+                <CardDescription>Price: {Number(formatWeiToEth(item.price)).toFixed(3)} ETH</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Sold {item.salesCount} times</p>
+                <p className="text-gray-400 text-sm">Seller: {item.seller}</p>
+                <Button 
+                  onClick={() => fetchData(item.item_cid, item.description)}
+                  disabled={fetchingId === item.item_cid}
+                  className={`w-full ${
+                    fetchingId === item.item_cid 
+                      ? 'bg-gray-400' 
+                      : downloadedItems.has(item.item_cid)
+                        ? 'bg-green-500 hover:bg-green-600'
+                        : 'bg-blue-500 hover:bg-blue-600'
+                  } text-white font-bold py-2 px-4 rounded-lg mt-4`}
+                >
+                  {fetchingId === item.item_cid 
+                    ? 'Fetching...' 
+                    : downloadedItems.has(item.item_cid)
+                      ? 'Download Again'
+                      : 'Download'
+                  }
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <p className="col-span-full text-center text-gray-400">
+            No purchased items found.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderMyStallContent = () => (
+    <div className="relative min-h-[485px]"> {/* Added min-height */}
+      {!account && renderLockScreen()}
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
+        {loading ? (
+          <div className="col-span-full flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : dataItems
+            .filter(item => item.seller.toLowerCase() === account.toLowerCase())
+            .map((item, index) => (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{item.description}</CardTitle>
+                  <CardDescription>Sold {item.salesCount} times</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold mb-4">{Number(formatWeiToEth(item.price)).toFixed(3)} ETH</p>
+                  <Button 
+                    onClick={() => deListData(item.id)}
+                    disabled={delisting === item.id}
+                    variant="destructive"
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" 
+                  >
+                    {delisting === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delist
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+        {!loading && dataItems.filter(item => item.seller.toLowerCase() === account.toLowerCase()).length === 0 && (
+          <p className="col-span-full text-center text-gray-400">No items available.</p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -450,18 +571,23 @@ export default function Home() {
     </div>
   </div>
 
-  
   {!account ? (
           <Button onClick={connectWallet} variant="outline">
             Connect Wallet
           </Button>
         ) : (
           <div className="flex items-center text-white space-x-4">
-            <div className="flex items-center space-x-2">
+            <div className="relative flex items-center space-x-2 group">
               <span>{network.toUpperCase()}</span>
+              <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
+                <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">Current Network</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="relative flex items-center space-x-2 group">
               <span>{parseFloat(balance).toFixed(2)} {currency}</span>
+              <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
+                <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">Your Balance</span>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <span>{account.slice(0, 6)}...{account.slice(-4)}</span>
@@ -514,9 +640,11 @@ export default function Home() {
         </div>
 
         {activeTab === 'upload' && (
-        <Card className="max-w-2xl mx-auto bg-gray-900 shadow-lg rounded-lg">
-          <CardContent className="p-8 space-y-6">
-            <h2 className="text-2xl font-bold text-white text-center mb-6">Upload Data For Sale</h2>
+        <div className="relative">
+          {!account && renderLockScreen()}
+          <Card className={`max-w-2xl mx-auto bg-gray-900 shadow-lg rounded-lg ${!account ? 'blur-sm' : ''}`}>
+            <CardContent className="p-8 space-y-6">
+              <h2 className="text-2xl font-bold text-white text-center mb-6">Upload Data For Sale</h2>
 
             {/* File Upload */}
             <div>
@@ -565,55 +693,15 @@ export default function Home() {
             </button>
           </CardContent>
         </Card>
+        </div>
           )}
 
-        {activeTab === 'inventory' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {loading ? (
-            <div className="col-span-full flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : inventoryItems.length > 0 ? (
-            inventoryItems.map((item, index) => (
-              <Card key={`${item.id}-${index}`}>
-                <CardHeader>
-                  <CardTitle>{item.description}</CardTitle>
-                  <CardDescription>Price: {Number(formatWeiToEth(item.price)).toFixed(3)} ETH</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>Sold {item.salesCount} times</p>
-                  <p className="text-gray-400 text-sm">Seller: {item.seller}</p>
+{activeTab === 'inventory' && renderInventoryContent()}
 
-                  <Button 
-                    onClick={() => fetchData(item.item_cid, item.description)}
-                    disabled={fetchingId === item.item_cid}
-                    className={`w-full ${
-                      fetchingId === item.item_cid 
-                        ? 'bg-gray-400' 
-                        : downloadedItems.has(item.item_cid)
-                          ? 'bg-green-500 hover:bg-green-600'
-                          : 'bg-blue-500 hover:bg-blue-600'
-                    } text-white font-bold py-2 px-4 rounded-lg mt-4`}
-                  >
-                    {fetchingId === item.item_cid 
-                      ? 'Fetching...' 
-                      : downloadedItems.has(item.item_cid)
-                        ? 'Download Again'
-                        : 'Download'
-                    }
-                  </Button>
-                </CardContent>
-              </Card>
-              ))
-            ) : (
-              <p className="col-span-full text-center text-gray-400">
-                No purchased items found.
-              </p>
-            )}
-          </div>
-        )}
+{activeTab === 'my-stall' && renderMyStallContent()}
+  
 
-        {(activeTab === 'browse' || activeTab === 'my-stall') && (
+        {(activeTab === 'browse') && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {loading ? (
               <div className="col-span-full flex justify-center py-8">
@@ -644,7 +732,7 @@ export default function Home() {
 
         <p className="text-2xl font-bold mb-4">{Number(formatWeiToEth(item.price)).toFixed(3)} ETH</p>
         <div className="flex gap-2">
-                      {activeTab === 'browse' && (
+          {activeTab === 'browse' && (
                         <>
                           {/* Only show Buy Now button if it's not the seller's own listing */}
                           {item.seller.toLowerCase() !== account.toLowerCase() && (
@@ -659,23 +747,7 @@ export default function Home() {
                         </>
                       )}
 
-        {activeTab === 'my-stall' && (
-            <Button 
-              onClick={() => deListData(item.id)}
-              disabled={delisting === item.id}
-              variant="destructive"
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" 
-            >
-              {delisting === item.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delist
-                </>
-              )}
-            </Button>
-          )}
+        
         </div>
 
         </CardContent>
@@ -688,4 +760,4 @@ export default function Home() {
               </div>
             </div>
           );
-        }
+}
