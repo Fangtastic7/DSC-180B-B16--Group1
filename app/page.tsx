@@ -163,27 +163,32 @@ export default function Home() {
   };
 
   // Connect wallet function
-  const connectWallet = async () => {
+const connectWallet = async () => {
     try {
       // Initialize ethers first
       const provider = await initializeEthers();
       if (!provider) return;
-
+  
       // Request account access
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       if (accounts.length === 0) {
         console.log("No accounts found");
         return;
       }
-
+  
       // Set account and fetch balance
       setAccount(accounts[0]);
       const balance = await provider.getBalance(accounts[0]);
       setBalance(formatEther(balance));
-
+  
     } catch (error) {
-      console.error("Error connecting wallet:", error);
-      alert("Failed to connect wallet. Please try again.");
+      if (error.code === 4001) {
+        // User rejected the request
+        console.log("User rejected the request");
+      } else {
+        console.error("Error connecting wallet:", error);
+        alert("Failed to connect wallet. Please try again.");
+      }
     }
   };
 
@@ -233,7 +238,7 @@ export default function Home() {
 
   const uploadFile = async () => {
     let uploadedCID = null;
-    let uploadedCID = null;
+    //let uploadedCID = null;
     // Show disclaimer popup
     Swal.fire({
       title: "Important Disclaimer",
