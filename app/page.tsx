@@ -11,6 +11,7 @@ import { Textarea } from "@/utils/components/ui/textarea";
 //import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
 import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store } from 'lucide-react';
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
+import Swal from 'sweetalert2';
 
 
 declare global {
@@ -232,6 +233,17 @@ export default function Home() {
 
   const uploadFile = async () => {
     let uploadedCID = null;
+    let uploadedCID = null;
+    // Show disclaimer popup
+    Swal.fire({
+      title: "Important Disclaimer",
+      text: "By uploading a file, you confirm that you own the rights to distribute it and that it does not contain any illegal or restricted content. Any and all data uploaded is available for the public. Ensure you have permission to share any sensitive information. We are not responsible for any data infractions / violations",
+      icon: "warning",
+      confirmButtonText: "I Understand",
+      confirmButtonColor: "#3085d6",
+      allowOutsideClick: false
+  }).then(async (result) => {
+      if (result.isConfirmed) {
     try {
       if (!file || !price || !description) {
         alert("Please fill in all fields and connect your wallet");
@@ -302,9 +314,20 @@ export default function Home() {
         setDescription("");
       alert("Error uploading file");
     }
+  }})
   };
 
   const fetchData = async (cid: string, description: string) => {
+    // Show disclaimer popup
+    Swal.fire({
+      title: "Important Disclaimer",
+      text: "Placeholder text",
+      icon: "warning",
+      confirmButtonText: "I Understand",
+      confirmButtonColor: "#3085d6",
+      allowOutsideClick: false
+  }).then(async (result) => {
+      if (result.isConfirmed) {
     try {
       setFetchingId(cid); // Set loading state
 
@@ -339,6 +362,7 @@ export default function Home() {
       setLoading(false);
       setFetchingId(null);
     }
+  }})
   };
 
   const buyData = async (itemId) => {
@@ -346,6 +370,16 @@ export default function Home() {
       alert("Please connect your wallet to make a purchase.");
       return;
     }
+    // Show disclaimer popup
+    Swal.fire({
+      title: "Important Disclaimer",
+      text: "All purchases are final; please ensure the data matches your expectations before buying, as we are not responsible for any discrepancies or misuse.",
+      icon: "warning",
+      confirmButtonText: "I Understand",
+      confirmButtonColor: "#3085d6",
+      allowOutsideClick: false
+  }).then(async (result) => {
+      if (result.isConfirmed) {
     try {
       setLoading(true);
       const contract = await getContract(true);
@@ -399,6 +433,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }})
   };
 
   const deListData = async (itemId: number) => {
