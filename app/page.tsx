@@ -171,7 +171,7 @@ const connectWallet = async () => {
   
       // Request account access
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (accounts.length === 0) {
+      if (!accounts) {
         console.log("No accounts found");
         return;
       }
@@ -246,6 +246,9 @@ const connectWallet = async () => {
       icon: "warning",
       confirmButtonText: "I Understand",
       confirmButtonColor: "#3085d6",
+      showCancelButton: true,  // Enables a cancel button
+      cancelButtonText: "Exit",
+      cancelButtonColor: "#d33",
       allowOutsideClick: false
   }).then(async (result) => {
       if (result.isConfirmed) {
@@ -326,10 +329,13 @@ const connectWallet = async () => {
     // Show disclaimer popup
     Swal.fire({
       title: "Important Disclaimer",
-      text: "Placeholder text",
+      text: "By downloading this file, you acknowledge that it is provided \"as is\" without warranties, and you assume all responsibility for its use, security, and compliance with applicable laws.",
       icon: "warning",
       confirmButtonText: "I Understand",
       confirmButtonColor: "#3085d6",
+      showCancelButton: true,  // Enables a cancel button
+      cancelButtonText: "Exit",
+      cancelButtonColor: "#d33",
       allowOutsideClick: false
   }).then(async (result) => {
       if (result.isConfirmed) {
@@ -382,6 +388,9 @@ const connectWallet = async () => {
       icon: "warning",
       confirmButtonText: "I Understand",
       confirmButtonColor: "#3085d6",
+      showCancelButton: true,  // Enables a cancel button
+      cancelButtonText: "Exit",
+      cancelButtonColor: "#d33",
       allowOutsideClick: false
   }).then(async (result) => {
       if (result.isConfirmed) {
