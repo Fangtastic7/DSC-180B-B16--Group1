@@ -12,7 +12,7 @@ https://drive.google.com/drive/folders/1BvZfJq_DWqc0jNtEwkINxwZiaCyrKW3d?usp=dri
 - https://polygon.technology/blog/introducing-the-amoy-testnet-for-polygon-pos
 5. Once configured, use this faucet to get tokens.
 - https://faucet.polygon.technology/
-6. When paying for transactions, make sure to set the priority fee and max base fee to 40 & 45 respectively.
+6. When paying for transactions, make sure to set the priority fee and max base fee to 35 & 40 respectively.
 - https://support.metamask.io/configure/transactions/how-to-customize-gas-settings/
   
 
