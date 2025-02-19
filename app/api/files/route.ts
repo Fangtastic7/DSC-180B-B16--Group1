@@ -75,12 +75,14 @@ export async function POST(request: NextRequest) {
     // Parse form data from the request
     const formData = await request.formData();
     const file = formData.get("file") as unknown as File;
+    const logo = formData.get("logo") as unknown as File;
     const price = formData.get("price") as string;
+    const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     
-    console.log("Parsed FormData:", { file, price, description });
+    //console.log("Parsed FormData:", { file, price, description });
 
-    if (!file || !price || !description) {
+    if (!file || !price || !title || !description) {
       console.error("Missing required fields:", { file, price, description });
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
@@ -108,11 +110,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // file metadata
+    const fileSize = file.size;
+    const fileType = file.type;
+    const timestamp = Math.floor(Date.now() / 1000);
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     // Generate a unique file name for S3
     const fileName = `${uuidv4()}_${file.name}`;
+
     const uploadFile = async (bucketName: string) => {
       const params = {
         Bucket: bucketName,
@@ -124,21 +132,53 @@ export async function POST(request: NextRequest) {
       return s3.upload(params).promise(); // Return a promise to wait for the upload
     };
     
+      // Handle logo upload if provided
+      let logoCid = "";
+      if (logo) {
+        const logoArrayBuffer = await logo.arrayBuffer();
+        const logoBuffer = Buffer.from(logoArrayBuffer);
+        const logoFileName = `logo_${uuidv4()}_${logo.name}`;
+    
+        const logoParams = {
+          Bucket: process.env.S3_BUCKET_NAME as string,
+          Key: logoFileName,
+          Body: logoBuffer,
+          ContentType: logo.type,
+        };
+    
+        await s3.upload(logoParams).promise();
+
+          // Get logo CID from Lambda
+        const logoLambdaParams = {
+          FunctionName: 'pinataUpload',
+          InvocationType: 'RequestResponse',
+          Payload: JSON.stringify({ fileName: logoFileName }),
+        };
+          
+        const lambda = new AWS.Lambda();
+
+        const logoResponse = await lambda.invoke(logoLambdaParams).promise();
+        const logoPayload = JSON.parse(logoResponse.Payload);
+        if (logoPayload.statusCode === 200) {
+          const logoResult = JSON.parse(logoPayload.body);
+          logoCid = logoResult.cid;
+        }
+      }
+
     const bucketName = process.env.S3_BUCKET_NAME as string;
     const uploadResponse = await uploadFile(bucketName);
     
     console.log(`File uploaded successfully: ${uploadResponse.Location}`);
     
-    const lambda = new AWS.Lambda();
-    var cid;
+    const lambda2 = new AWS.Lambda();
     const params = {
       FunctionName: 'pinataUpload', 
       InvocationType: 'RequestResponse', // Optional: 'Event' for async, 'RequestResponse' for sync
       Payload: JSON.stringify({ fileName }), // Pass the fileName as a payload
     };
-  
+    var cid;
     try {
-      const response = await lambda.invoke(params).promise();
+      const response = await lambda2.invoke(params).promise();
       const responsePayload = JSON.parse(response.Payload);
   
       if (responsePayload.statusCode === 200) {
@@ -148,14 +188,21 @@ export async function POST(request: NextRequest) {
         
       } else {
         console.error('Lambda returned an error:', responsePayload);
+        throw new Error('Failed to get CID from Lambda');
       }
     } catch (error) {
       console.error('Error invoking Lambda function:', error);
+      throw error;
     }
     
   
     // Return the CID to the frontend
-    return NextResponse.json({ cid });
+    return NextResponse.json({
+      cid,
+      logoCid,
+      fileSize,
+      fileType
+    });
   } catch (error) {
     console.error("Error in /api/files route:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
