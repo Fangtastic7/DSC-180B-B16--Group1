@@ -538,6 +538,7 @@ const connectWallet = async () => {
       console.log("Getting smart contract instance...");
       const contract = await getContract(true);
       console.log("Smart contract instance retrieved.");
+
       // deList the data on the blockchain
       console.log("Calling deListData on the smart contract...");
       const tx = await contract.deListData(itemId);
@@ -546,10 +547,10 @@ const connectWallet = async () => {
       console.log("Transaction confirmed.");
       
 
-      //remove from IPFS
-      const cid = await contract.getCID(itemId);
+      //remove file from IPFS
+      const fileCID = await contract.getCID(itemId);
       
-      const unpinResponse = await fetch(`/api/files?cid=${cid}`, {
+      const unpinResponse = await fetch(`/api/files?cid=${fileCID}`, {
         method: 'DELETE'
       });
       
@@ -557,9 +558,32 @@ const connectWallet = async () => {
         const errorData = await unpinResponse.json();
         throw new Error(errorData.error || 'Failed to delete file');
       }
-      
+
       const data = await unpinResponse.json();
       console.log('File successfully deleted:', data.message);
+
+      //remove logo from IPFS
+      const metadata = await contract.getItemMetadata(itemId);
+
+      if (metadata && metadata.logoCid && metadata.logoCid !== "") {
+        try {
+        const unpinResponse2 = await fetch(`/api/files?cid=${metadata.logoCid}`, {
+          method: 'DELETE'
+        });
+
+        if (!unpinResponse2.ok) {
+          const errorData = await unpinResponse2.json();
+          console.error('Failed to delete logo:', errorData.error);
+        } else {
+          const data2 = await unpinResponse2.json();
+          console.log('Logo successfully deleted:', data2.message);
+        }
+      } catch (unpinError) {
+        console.error('Error deleting logo:', unpinError);
+      }
+    } else {
+      console.log('No logo to delete');
+    }
 
       await loadItems();
     } catch (error: any) {
