@@ -111,11 +111,11 @@ export async function POST(request: NextRequest) {
     }
 
     // file metadata
-    const fileSize = file.size;
-    const fileType = file.type;
+    const fileSize = processedFile.size;
+    const fileType = processedFile.type;
     const timestamp = Math.floor(Date.now() / 1000);
 
-    const arrayBuffer = await file.arrayBuffer();
+    const arrayBuffer = await processedFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     // Generate a unique file name for S3
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         Bucket: bucketName,
         Key: fileName,
         Body: buffer,
-        ContentType: file.type, // Set content type for proper file handling in S3
+        ContentType: processedFile.type, // Set content type for proper file handling in S3
       };
 
       return s3.upload(params).promise(); // Return a promise to wait for the upload

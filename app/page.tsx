@@ -9,8 +9,9 @@ import { Button } from "@/utils/components/ui/button";
 import { Input } from "@/utils/components/ui/input";
 import { Textarea } from "@/utils/components/ui/textarea";
 //import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
-import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X } from 'lucide-react';
+import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut} from 'lucide-react';
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
 import Swal from 'sweetalert2';
 
 
@@ -48,6 +49,36 @@ export default function Home() {
     //initializeEthers();
     loadItems();
   }, []);
+
+  // Add this at the top of your component
+  useEffect(() => {
+    const checkWalletConnection = async () => {
+      // Check if user has explicitly disconnected
+      if (localStorage.getItem('walletDisconnected') === 'true') {
+        return; // Don't auto-connect if user has disconnected
+      }
+  
+      if (typeof window.ethereum !== "undefined") {
+        try {
+          const accounts = await window.ethereum.request({ 
+            method: 'eth_accounts'
+          });
+          
+          if (accounts.length > 0) {
+            const provider = await initializeEthers();
+            if (!provider) return;
+  
+            setAccount(accounts[0]);
+            const balance = await provider.getBalance(accounts[0]);
+            setBalance(formatEther(balance));
+          }
+        } catch (error) {
+          console.error("Error checking wallet connection:", error);
+        }
+      }
+    };
+  checkWalletConnection();
+}, []); // Empty dependency array means this runs once on mount
 
   useEffect(() => {
     if (contract && account && activeTab === 'inventory') {
@@ -180,8 +211,11 @@ export default function Home() {
   };
 
   // Connect wallet function
-const connectWallet = async () => {
+  const connectWallet = async () => {
     try {
+      // Clear the disconnected flag when user explicitly connects
+      localStorage.removeItem('walletDisconnected');
+      
       // Initialize ethers first
       const provider = await initializeEthers();
       if (!provider) return;
@@ -200,12 +234,36 @@ const connectWallet = async () => {
   
     } catch (error) {
       if (error.code === 4001) {
-        // User rejected the request
         console.log("User rejected the request");
       } else {
         console.error("Error connecting wallet:", error);
         alert("Failed to connect wallet. Please try again.");
       }
+    }
+  };
+
+   // Disconnect wallet function
+   const disconnectWallet = async () => {
+    try {
+      // Clear all state
+      setAccount("");
+      setNetwork("");
+      setBalance("");
+      setCurrency("");
+      setActiveTab("browse");
+      setContract(null);
+      setProvider(null);
+      setInventoryItems([]);
+      setPurchasedItems(new Set());
+  
+      // Set disconnected flag in localStorage
+      localStorage.setItem('walletDisconnected', 'true');
+      
+      // No need to request permissions or lock MetaMask
+      // Just let the state reset handle the disconnection
+  
+    } catch (error) {
+      console.error("Error disconnecting wallet:", error);
     }
   };
 
@@ -949,6 +1007,7 @@ const renderInventoryContent = () => (
             Connect Wallet
           </Button>
         ) : (
+
           <div className="flex items-center text-white space-x-4">
             <div className="relative flex items-center space-x-2 group">
               <span>{network.toUpperCase()}</span>
@@ -962,9 +1021,26 @@ const renderInventoryContent = () => (
                 <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">Your Balance</span>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <span>{account.slice(0, 6)}...{account.slice(-4)}</span>
-            </div>
+            <DropdownMenu>
+            <DropdownMenuTrigger className="px-4 py-2 border rounded cursor-pointer">
+              {account.slice(0, 6)}...{account.slice(-4)}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-gray-800 text-white p-2 rounded-md shadow-lg">
+              <DropdownMenuItem onClick={() => setActiveTab("my-stall")}>
+                <Store className="h-4 w-4" />
+                My Stall
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("inventory")}>
+                <List className="h-4 w-4" />
+                Inventory
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={disconnectWallet} className="text-red-500">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+
+            </DropdownMenuContent>
+          </DropdownMenu>
           </div>
         )}
       </div>
@@ -993,7 +1069,7 @@ const renderInventoryContent = () => (
             <Upload className="mr-2 h-5 w-5" />
             Upload
           </Button>
-          <Button
+          {/* <Button
             variant={activeTab === 'my-stall' ? 'default' : 'outline'}
             onClick={() => setActiveTab('my-stall')}
             className="w-36 h-14 text-lg font-medium border border-white flex items-center justify-center"
@@ -1009,7 +1085,7 @@ const renderInventoryContent = () => (
           >
             <Store className="mr-2 h-5 w-5" />
             Inventory
-          </Button>
+          </Button> */}
         </div>
 
     {activeTab === 'upload' && (
