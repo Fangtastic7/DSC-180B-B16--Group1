@@ -9,7 +9,7 @@ import { Button } from "@/utils/components/ui/button";
 import { Input } from "@/utils/components/ui/input";
 import { Textarea } from "@/utils/components/ui/textarea";
 //import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
-import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut} from 'lucide-react';
+import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download } from 'lucide-react';
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
 import Swal from 'sweetalert2';
@@ -235,7 +235,9 @@ export default function Home() {
     } catch (error) {
       if (error.code === 4001) {
         console.log("User rejected the request");
-      } else {
+      } else if (error.code === -32002) {
+        alert("MetaMask is already processing a connection request. Please check your MetaMask window");
+      }else {
         console.error("Error connecting wallet:", error);
         alert("Failed to connect wallet. Please try again.");
       }
@@ -887,31 +889,35 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
         <Button
           onClick={() => buyData(item.id)}
           disabled={loading || isPurchased}
-          className={`w-full ${isPurchased ? 'bg-gray-500' : 'bg-blue-500 hover:bg-blue-600'}`}
+          className={`w-full ${isPurchased ? 'bg-gray-500' : 'bg-blue-500 hover:bg-blue-600'} flex items-center justify-center space-x-2 font-bold`}
         >
-          {loading ? 'Processing...' : isPurchased ? 'Purchased' : 'Buy Now'}
+          <ShoppingCart className="h-4 w-4" />
+          <span>{loading ? 'Processing...' : isPurchased ? 'Purchased' : 'Buy Now'}</span>
         </Button>
       ) : null}
 
       {isMyInventory && (
         <Button 
-          onClick={() => fetchData(item.item_cid, item.title)}
-          disabled={fetchingId === item.item_cid}
-          className={`w-full ${
-            fetchingId === item.item_cid 
-              ? 'bg-gray-400' 
-              : downloadedItems.has(item.item_cid)
-                ? 'bg-green-500 hover:bg-green-600'
-                : 'bg-blue-500 hover:bg-blue-600'
-          }`}
-        >
+        onClick={() => fetchData(item.item_cid, item.title)}
+        disabled={fetchingId === item.item_cid}
+        className={`w-full ${
+          fetchingId === item.item_cid 
+            ? 'bg-gray-400' 
+            : downloadedItems.has(item.item_cid)
+              ? 'bg-green-500 hover:bg-green-600'
+              : 'bg-blue-500 hover:bg-blue-600'
+        } flex items-center justify-center space-x-2`}
+      >
+        <Download className="h-4 w-4" />
+        <span>
           {fetchingId === item.item_cid 
             ? 'Fetching...' 
             : downloadedItems.has(item.item_cid)
               ? 'Download Again'
               : 'Download'
           }
-        </Button>
+        </span>
+      </Button>
       )}
     </div>
       )}
@@ -920,7 +926,6 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
   );
 };
 
-// Update the tab render functions
 const renderBrowseContent = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {loading ? (
@@ -1000,95 +1005,109 @@ const renderInventoryContent = () => (
         className="h-10 w-25" 
       />
     </div>
+    {/* Navigation Buttons */}
+    <div className="flex gap-4 ml-4">
+      <Button 
+        variant="ghost"
+        onClick={() => setActiveTab('browse')}
+        className={`h-10 px-4 font-bold flex items-center justify-center border-none relative
+          ${activeTab === 'browse' 
+            ? 'text-white after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500' 
+            : 'text-gray-400 hover:text-white hover:bg-gray-800'
+          } transition-all duration-200`}
+      >
+        Browse
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => setActiveTab('upload')}
+        className={`h-10 px-4 font-bold flex items-center justify-center border-none relative
+          ${activeTab === 'upload' 
+            ? 'text-white after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500' 
+            : 'text-gray-400 hover:text-white hover:bg-gray-800'
+          } transition-all duration-200`}
+        //disabled={!account}
+      >
+        Upload
+      </Button>
+      <Button 
+    variant="ghost"
+    onClick={() => window.open('https://adityamelkote.github.io/DSC180BWebsite/', '_blank')}
+    className="h-10 px-4 font-bold flex items-center justify-center border-none text-gray-400 hover:text-white hover:bg-gray-800 transition-all duration-200"
+  >
+    About
+  </Button>
+    </div>
   </div>
 
   {!account ? (
-          <Button onClick={connectWallet} variant="outline">
-            Connect Wallet
-          </Button>
-        ) : (
-
-          <div className="flex items-center text-white space-x-4">
-            <div className="relative flex items-center space-x-2 group">
-              <span>{network.toUpperCase()}</span>
-              <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
-                <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">Current Network</span>
-              </div>
-            </div>
-            <div className="relative flex items-center space-x-2 group">
-              <span>{parseFloat(balance).toFixed(2)} {currency}</span>
-              <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
-                <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">Your Balance</span>
-              </div>
-            </div>
-            <DropdownMenu>
-            <DropdownMenuTrigger className="px-4 py-2 border rounded cursor-pointer">
-              {account.slice(0, 6)}...{account.slice(-4)}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-gray-800 text-white p-2 rounded-md shadow-lg">
-              <DropdownMenuItem onClick={() => setActiveTab("my-stall")}>
-                <Store className="h-4 w-4" />
-                My Stall
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("inventory")}>
-                <List className="h-4 w-4" />
-                Inventory
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={disconnectWallet} className="text-red-500">
-                <LogOut className="h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <Button onClick={connectWallet} variant="outline" className = "w-[160px] border border-white text-white hover:bg-gray-800 hover:text-white transition-all duration-200 font-bold">
+      Connect Wallet
+    </Button>
+  ) : (
+    <div className="flex items-center text-white space-x-4">
+      {/* Network and Balance info */}
+      <div className="flex items-center space-x-4">
+        <div className="relative flex items-center space-x-2 group">
+          <span className="font-bold">{network.toUpperCase()}</span>
+          <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
+            <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">
+              Current Network
+            </span>
           </div>
-        )}
+        </div>
+        <div className="relative flex items-center space-x-2 group">
+          <span className="font-bold">{parseFloat(balance).toFixed(2)} {currency}</span>
+          <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
+            <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">
+              Your Balance
+            </span>
+          </div>
+        </div>
       </div>
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+      {/* Dropdown Menu */}
+      <div className="relative">
+        <DropdownMenu>
+          <DropdownMenuTrigger className="w-[160px] px-4 py-2 border rounded cursor-pointer hover:text-white hover:bg-gray-800 transition-all duration-200 font-bold">
+            {account.slice(0, 6)}...{account.slice(-4)}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+          align="end" 
+          className="w-[160px] bg-gray-800 text-white p-2 rounded-md shadow-lg z-50" 
+        >
+          <DropdownMenuItem 
+            onClick={() => setActiveTab("my-stall")}
+            className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
+          >
+            <Store className="h-4 w-4" />
+            <span>My Stall</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => setActiveTab("inventory")}
+            className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
+          >
+            <List className="h-4 w-4" />
+            <span>Inventory</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={disconnectWallet} 
+            className="flex items-center space-x-2 px-3 py-2 hover:bg-red-600 text-red-500 hover:text-white rounded-md cursor-pointer"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  )}
+</div>
 
-        <div className="flex gap-6 mb-6">
-          <Button 
-            variant={activeTab === 'browse' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('browse')}
-            className="w-36 h-14 text-lg font-medium border border-white flex items-center justify-center"
-          >
-            <ShoppingCart className="mr-2 h-5 w-5" />
-            Browse
-          </Button>
-          <Button
-            variant={activeTab === 'upload' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('upload')}
-            className="w-36 h-14 text-lg font-medium border border-white flex items-center justify-center"
-          >
-            <Upload className="mr-2 h-5 w-5" />
-            Upload
-          </Button>
-          {/* <Button
-            variant={activeTab === 'my-stall' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('my-stall')}
-            className="w-36 h-14 text-lg font-medium border border-white flex items-center justify-center"
-          >
-            <Store className="mr-2 h-5 w-5" />
-            My Stall
-          </Button>
-
-          <Button
-            variant={activeTab === 'inventory' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('inventory')}
-            className="w-36 h-14 text-lg font-medium border border-white flex items-center justify-center"
-          >
-            <Store className="mr-2 h-5 w-5" />
-            Inventory
-          </Button> */}
-        </div>
 
     {activeTab === 'upload' && (
+        <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-white">Upload Data</h1>
     <div className="relative min-h-[485px]">
     {!account && renderLockScreen()}
     <Card className={`max-w-2xl mx-auto bg-gray-900 shadow-lg rounded-lg ${!account ? 'blur-sm' : ''}`}>
@@ -1162,22 +1181,40 @@ const renderInventoryContent = () => (
 
         {/* Upload Button */}
         <Button
-          onClick={uploadFile}
-          disabled={uploading || !file || !price || !description}
-          className="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {uploading ? "Uploading..." : "Upload"}
-          </Button>
+        onClick={uploadFile}
+        disabled={uploading || !file || !price || !description}
+        className="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+      >
+        <Upload className="h-4 w-4" />
+        <span>{uploading ? "Uploading..." : "Upload"}</span>
+        </Button>
       </CardContent>
     </Card>
   </div>
+  </div>
 )}
 
-{activeTab === 'inventory' && renderInventoryContent()}
 
-{activeTab === 'my-stall' && renderMyStallContent()}
-  
-{activeTab === 'browse' && renderBrowseContent()}
+{activeTab === 'browse' && (
+  <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-white">Marketplace</h1>
+    {renderBrowseContent()}
+  </div>
+)}
+
+{activeTab === 'my-stall' && (
+  <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-white">My Stall</h1>
+    {renderMyStallContent()}
+  </div>
+)}
+
+{activeTab === 'inventory' && (
+  <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-white">My Inventory</h1>
+    {renderInventoryContent()}
+  </div>
+)}
               </div>
             </div>
           );
