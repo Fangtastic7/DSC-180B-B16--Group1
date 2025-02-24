@@ -11,7 +11,7 @@ import { Textarea } from "@/utils/components/ui/textarea";
 //import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
 import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download } from 'lucide-react';
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/dropdown-menu";
 import Swal from 'sweetalert2';
 
 
@@ -1032,7 +1032,7 @@ const renderInventoryContent = () => (
       </Button>
       <Button 
     variant="ghost"
-    onClick={() => window.open('https://adityamelkote.github.io/DSC180BWebsite/', '_blank')}
+    onClick={() => window.open('https://adityamelkote.github.io/DSC180B/', '_blank')}
     className="h-10 px-4 font-bold flex items-center justify-center border-none text-gray-400 hover:text-white hover:bg-gray-800 transition-all duration-200"
   >
     About
