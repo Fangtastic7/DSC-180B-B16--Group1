@@ -11,7 +11,7 @@ import { Textarea } from "@/utils/components/ui/textarea";
 //import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
 import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download } from 'lucide-react';
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
 import Swal from 'sweetalert2';
 import { motion } from "framer-motion";
 
@@ -262,6 +262,8 @@ export default function Home() {
   
       // Set disconnected flag in localStorage
       localStorage.setItem('walletDisconnected', 'true');
+
+      setActiveTab("home");
       
       // No need to request permissions or lock MetaMask
       // Just let the state reset handle the disconnection
@@ -748,10 +750,10 @@ export default function Home() {
   };
 
   const renderLockScreen = () => (
-    <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center z-10">
+    <div className="absolute inset-x-0 top-0 bottom-0 bg-gray-900/75 backdrop-blur-sm flex flex-col items-center justify-center z-40">
       <div className="flex flex-col items-center space-y-4">
         <img src="/images/lock_icon.ico" alt="Lock Icon" className="h-20 w-20" />
-        <p className="text-white text-xl font-semibold text-center">Please log in to access this feature.</p>
+        <p className="text-white text-xl font-semibold text-center">Please connect your wallet to access this feature.</p>
       </div>
     </div>
   );
@@ -762,7 +764,7 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
   const isPurchased = purchasedItems.has(item.id);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   return(
-  <Card key={item.id} className="overflow-hidden h-[550px] flex flex-col"> {/* Fixed height and flex column */}
+  <Card key={item.id} className="overflow-hidden h-[550px] flex flex-col bg-gray-900"> {/* Fixed height and flex column */}
     {/* Logo/Image Section - Fixed height */}
     <div className="w-full h-48 bg-gray-800 relative flex-shrink-0"> {/* flex-shrink-0 prevents compression */}
       {item.logoCid ? (
@@ -785,7 +787,7 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
     </div>
 
     {/* Expandable Title */}
-    <CardHeader className="flex-shrink-0">
+    <CardHeader className="flex-shrink-0 bg-gray-900">
       <div className="group relative">
         <CardTitle className="text-xl font-bold truncate">
           {item.title}
@@ -835,7 +837,7 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
     </CardHeader>
 
     {/* Content section with scroll if needed */}
-    <CardContent className="flex-1 overflow-y-auto space-y-3">
+    <CardContent className="flex-1 overflow-y-auto space-y-3 bg-gray-900">
       {/* Metadata Grid */}
       <div className="grid grid-cols-2 gap-2 text-sm -mt-6"> {/* Added -mt-2 to pull grid up */}
       <div className="text-gray-400">File Size:</div>
@@ -997,29 +999,29 @@ const renderInventoryContent = () => (
 
 
 return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-  <div className="flex items-center">
-    <div className="bg-gray-900 flex items-center">
-      <img 
-        src="icon.ico"
-        className="h-10 w-25" 
-      />
-    </div>
+  <div className="min-h-screen relative bg-[url('/images/zoom_background.jpg')] bg-cover bg-center bg-fixed">
+  {/* Add an overlay to ensure text readability */}
+  <div className="absolute inset-0 bg-gray-900/40"></div>
+
+    {/* Main content container */}
+    <div className="relative z-10 min-h-screen text-white">
+      {/* Navigation bar with semi-transparent background */}
+      <div className="sticky top-0 bg-gray-900/75 backdrop-blur-sm border-b border-gray-800 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+      <div className="flex items-center">
+      {/* Clickable Logo */}
+      <div 
+        className="bg-gray-900 flex items-center cursor-pointer hover:opacity-80 transition-all duration-200"
+        onClick={() => setActiveTab('home')}
+      >
+        <img 
+          src="icon.ico"
+          className="h-10 w-25" 
+        />
+      </div>
     {/* Navigation Buttons */}
     <div className="flex gap-4 ml-4">
-          <Button 
-        variant="ghost"
-        onClick={() => setActiveTab('home')}
-        className={`h-10 px-4 font-bold flex items-center justify-center border-none relative
-          ${activeTab === 'home' 
-            ? 'text-white after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500' 
-            : 'text-gray-400 hover:text-white hover:bg-gray-800'
-          } transition-all duration-200`}
-      >
-        Home
-      </Button>
       <Button 
         variant="ghost"
         onClick={() => setActiveTab('browse')}
@@ -1116,10 +1118,12 @@ return (
     </div>
   )}
 </div>
+</div>
+</div>
 
-
+<div className="max-w-7xl mx-auto px-6 py-8">
     {activeTab === 'upload' && (
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
     <h1 className="text-3xl font-bold text-white">Upload Data</h1>
     <div className="relative min-h-[485px]">
     {!account && renderLockScreen()}
@@ -1226,7 +1230,7 @@ return (
       animate={{ opacity: 1, y: 0 }} 
       transition={{ duration: 1, delay: 1 }}
     >
-      High-quality Data Marketplace secured by Blockchain Tech
+      High-Quality Data Marketplace secured by Blockchain Tech
     </motion.p>
 
     {/* Buttons with delay after text appears */}
@@ -1273,6 +1277,7 @@ return (
   </div>
 )}
               </div>
+            </div>
             </div>
           );
 }
