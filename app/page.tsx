@@ -13,6 +13,7 @@ import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, 
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/dropdown-menu";
 import Swal from 'sweetalert2';
+import { motion } from "framer-motion";
 
 
 declare global {
@@ -30,7 +31,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [account, setAccount] = useState<string>("");
   const [provider, setProvider] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('browse');
+  const [activeTab, setActiveTab] = useState('home');
   const [error, setError] = useState("");
   const [contract, setContract] = useState<any>(null);
   const [delisting, setDelisting] = useState<number | null>(null);
@@ -44,6 +45,7 @@ export default function Home() {
   const [logo, setLogo] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [purchasedItems, setPurchasedItems] = useState<Set<number>>(new Set());
+
 
   useEffect(() => {
     //initializeEthers();
@@ -994,7 +996,7 @@ const renderInventoryContent = () => (
 
 
 
-  return (
+return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -1007,6 +1009,17 @@ const renderInventoryContent = () => (
     </div>
     {/* Navigation Buttons */}
     <div className="flex gap-4 ml-4">
+          <Button 
+        variant="ghost"
+        onClick={() => setActiveTab('home')}
+        className={`h-10 px-4 font-bold flex items-center justify-center border-none relative
+          ${activeTab === 'home' 
+            ? 'text-white after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500' 
+            : 'text-gray-400 hover:text-white hover:bg-gray-800'
+          } transition-all duration-200`}
+      >
+        Home
+      </Button>
       <Button 
         variant="ghost"
         onClick={() => setActiveTab('browse')}
@@ -1194,6 +1207,50 @@ const renderInventoryContent = () => (
   </div>
 )}
 
+{activeTab === 'home' && (
+  <div className="min-h-screen flex flex-col items-center justify-center text-center bg-hero bg-cover bg-center bg-no-repeat text-white p-6">
+    {/* Title with fade-in effect */}
+    <motion.h1 
+      className="text-6xl font-bold leading-tight"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 2 }}
+    >
+      Welcome to the Data Match
+    </motion.h1>
+
+    {/* Subtitle with slight delay */}
+    <motion.p 
+      className="text-xl text-gray-300 max-w-xl"
+      initial={{ opacity: 0, y: -10 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 1, delay: 1 }}
+    >
+      High-quality Data Marketplace secured by Blockchain Tech
+    </motion.p>
+
+    {/* Buttons with delay after text appears */}
+    <motion.div 
+      className="mt-6 flex space-x-4"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 1, delay: 1 }}
+    >
+      <Button 
+        onClick={() => setActiveTab('browse')} 
+        className="bg-white text-gray-900 px-6 py-3 rounded-lg font-bold hover:bg-gray-200 transition-all duration-200"
+      >
+        Browse Datasets
+      </Button>
+      <Button 
+        onClick={() => setActiveTab('upload')} 
+        className="bg-gray-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-800 transition-all duration-200"
+      >
+        Upload Data
+      </Button>
+    </motion.div>
+  </div>
+)}
 
 {activeTab === 'browse' && (
   <div className="space-y-6">
