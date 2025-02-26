@@ -31,7 +31,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [account, setAccount] = useState<string>("");
   const [provider, setProvider] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Get the saved tab from localStorage or default to 'home'
+    return localStorage.getItem('activeTab') || 'home';
+  });
   const [error, setError] = useState("");
   const [contract, setContract] = useState<any>(null);
   const [delisting, setDelisting] = useState<number | null>(null);
@@ -45,6 +48,7 @@ export default function Home() {
   const [logo, setLogo] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [purchasedItems, setPurchasedItems] = useState<Set<number>>(new Set());
+
 
 
   useEffect(() => {
@@ -100,6 +104,11 @@ export default function Home() {
       checkPurchasedItems();
     }
   }, [account, contract, activeTab, dataItems]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    localStorage.setItem('activeTab', tab);
+  };
 
   const fetchInventory = async () => {
     if (!contract || !account) {
@@ -254,7 +263,7 @@ export default function Home() {
       setNetwork("");
       setBalance("");
       setCurrency("");
-      setActiveTab("browse");
+      handleTabChange('home');
       setContract(null);
       setProvider(null);
       setInventoryItems([]);
@@ -1013,7 +1022,7 @@ return (
       {/* Clickable Logo */}
       <div 
         className="bg-gray-900 flex items-center cursor-pointer hover:opacity-80 transition-all duration-200"
-        onClick={() => setActiveTab('home')}
+        onClick={() => handleTabChange('home')}
       >
         <img 
           src="icon.ico"
@@ -1024,7 +1033,7 @@ return (
     <div className="flex gap-4 ml-4">
       <Button 
         variant="ghost"
-        onClick={() => setActiveTab('browse')}
+        onClick={() => handleTabChange('browse')}
         className={`h-10 px-4 font-bold flex items-center justify-center border-none relative
           ${activeTab === 'browse' 
             ? 'text-white after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500' 
@@ -1035,7 +1044,7 @@ return (
       </Button>
       <Button
         variant="ghost"
-        onClick={() => setActiveTab('upload')}
+        onClick={() => handleTabChange('upload')}
         className={`h-10 px-4 font-bold flex items-center justify-center border-none relative
           ${activeTab === 'upload' 
             ? 'text-white after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-500' 
