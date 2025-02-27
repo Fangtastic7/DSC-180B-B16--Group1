@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     const price = formData.get("price") as string;
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
+    const removePii = formData.get("removePii") === "true";
     
     //console.log("Parsed FormData:", { file, price, description });
 
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     let processedFile = file;
     let piiFindings: string[] = [];
     // Check if file is CSV
-    if (file.name.toLowerCase().endsWith('.csv')) {
+    if (removePii && file.name.toLowerCase().endsWith('.csv')) {
       console.log("Processing CSV file for PII...");
       try {
         const fileBuffer = await file.arrayBuffer();

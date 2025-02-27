@@ -48,6 +48,11 @@ export default function Home() {
   const [logo, setLogo] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [purchasedItems, setPurchasedItems] = useState<Set<number>>(new Set());
+  const [removePii, setRemovePii] = useState(false); // Default to false
+  const handlePiiToggle = () => {
+    setRemovePii((prev) => !prev); // Toggle between true and false
+  };
+
 
 
 
@@ -363,6 +368,8 @@ export default function Home() {
       data.set("price", price);
       data.set("title", title);
       data.set("description", description);
+      data.set("removePii", removePii.toString());
+
       //data.set("sellerAddress", sellerAddress);
 
       if(logo){
@@ -1204,6 +1211,18 @@ return (
             className="block w-full text-sm text-gray-300 border border-gray-700 rounded-lg bg-gray-800 p-3 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 transition-all h-32"
           />
         </div>
+        {/* Remove PII Checkbox */}
+        <div>
+              <label className="block mb-2 text-lg font-semibold text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={removePii}
+                  onChange={handlePiiToggle} // Toggle the value of `removePii` when clicked
+                  className="mr-2"
+                />
+                Remove PII from the file
+              </label>
+            </div>
 
         {/* Upload Button */}
         <Button
