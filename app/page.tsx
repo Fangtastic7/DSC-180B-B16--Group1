@@ -49,12 +49,10 @@ export default function Home() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [purchasedItems, setPurchasedItems] = useState<Set<number>>(new Set());
   const [removePii, setRemovePii] = useState(false); // Default to false
+  const [searchQuery, setSearchQuery] = useState("");
   const handlePiiToggle = () => {
     setRemovePii((prev) => !prev); // Toggle between true and false
   };
-
-
-
 
   useEffect(() => {
     //initializeEthers();
@@ -946,28 +944,36 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
   );
 };
 
-const renderBrowseContent = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {loading ? (
-      <div className="col-span-full flex justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    ) : dataItems.length > 0 ? (
-      dataItems.map((item) => (
-        <ListingCard
-          key={item.id}
-          item={item}
-          showSeller={true}
-          isMyStall={false}
-        />
-      ))
-    ) : (
-      <p className="col-span-full text-center text-gray-400">
-        No items available.
-      </p>
-    )}
-  </div>
-);
+const renderBrowseContent = () => {
+  // Convert searchQuery to lowercase for case-insensitive search
+  const filteredItems = dataItems.filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {loading ? (
+        <div className="col-span-full flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : filteredItems.length > 0 ? (
+        filteredItems.map((item) => (
+          <ListingCard
+            key={item.id}
+            item={item}
+            showSeller={true}
+            isMyStall={false}
+          />
+        ))
+      ) : (
+        <p className="col-span-full text-center text-gray-400">
+          No matching items found.
+        </p>
+      )}
+    </div>
+  );
+};
 
 const renderMyStallContent = () => (
   <div className="relative min-h-[485px]">
@@ -1286,9 +1292,22 @@ return (
 
 {activeTab === 'browse' && (
   <div className="space-y-6">
+  {/* Flex container for title and search bar */}
+  <div className="flex justify-between items-center">
     <h1 className="text-3xl font-bold text-white">Marketplace</h1>
-    {renderBrowseContent()}
+
+    {/* Search Bar */}
+    <input
+      type="text"
+      placeholder="Search datasets..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="w-full max-w-md p-2 border border-gray-600 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
   </div>
+
+  {renderBrowseContent()}
+</div>
 )}
 
 {activeTab === 'my-stall' && (
