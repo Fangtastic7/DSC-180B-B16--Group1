@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/utils/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
 import Swal from 'sweetalert2';
 import { motion } from "framer-motion";
+import { ToastContainer, toast } from 'react-toastify';
 
 
 declare global {
@@ -58,6 +59,34 @@ export default function Home() {
     //initializeEthers();
     loadItems();
   }, []);
+  const  handleAlert = (alert: string,message: string) => {
+      if (alert === 'Success') {
+      toast.success(message, {
+        position: "top-left",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+        });
+      }
+      else if (alert === 'Error') {
+        toast.success(message, {
+          position: "top-left",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: false,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+          });
+        }
+  } 
+
+  
 
   // Add this at the top of your component
   useEffect(() => {
@@ -216,11 +245,11 @@ export default function Home() {
         if (error.code === 4001) {
           console.log("User rejected the request");
         } else {
-          alert("An error occurred. Please try again.");
+          handleAlert('Error',"An error occurred. Please try again.");
         }
       }
     } else {
-      alert("Please install MetaMask!");
+      handleAlert('Error,',"Please install MetaMask!");
     }
   };
 
@@ -250,10 +279,10 @@ export default function Home() {
       if (error.code === 4001) {
         console.log("User rejected the request");
       } else if (error.code === -32002) {
-        alert("MetaMask is already processing a connection request. Please check your MetaMask window");
+        handleAlert('Error',"MetaMask is already processing a connection request. Please check your MetaMask window");
       }else {
         console.error("Error connecting wallet:", error);
-        alert("Failed to connect wallet. Please try again.");
+         handleAlert('Error',"Failed to connect wallet. Please try again.");
       }
     }
   };
@@ -355,7 +384,7 @@ export default function Home() {
       if (result.isConfirmed) {
     try {
       if (!file || !price || !description) {
-        alert("Please fill in all fields and connect your wallet");
+         handleAlert('Error',"Please fill in all fields and connect your wallet");
         return;
       }
 
@@ -412,7 +441,7 @@ export default function Home() {
       // 3. Refresh the items list
       await loadItems();
   
-      alert("File uploaded and listed successfully!");
+      handleAlert('Success',"File uploaded and listed successfully!");
       
       // Clear form
       setFile(null);
@@ -476,7 +505,7 @@ export default function Home() {
         setPrice("");
         setDescription("");
         setTitle("");
-      alert("Error uploading file");
+        handleAlert('Error',"Error uploading file");
     }
   }})
   };
@@ -524,7 +553,7 @@ export default function Home() {
       
     } catch (error) {
       console.error('Error downloading file:', error);
-      alert('Failed to download file. Please try again.');
+       handleAlert('Error','Failed to download file. Please try again.');
     } finally {
       setLoading(false);
       setFetchingId(null);
@@ -534,7 +563,7 @@ export default function Home() {
 
   const buyData = async (itemId) => {
     if (!account) {
-      alert("Please connect your wallet to make a purchase.");
+       handleAlert('Error',"Please connect your wallet to make a purchase.");
       return;
     }
     // Show disclaimer popup
@@ -585,7 +614,7 @@ export default function Home() {
       await transaction.wait();
   
       console.log("Transaction confirmed!");
-      alert(`Purchase successful! Item ID: ${itemId}`);
+       handleAlert('Success',`Purchase successful! Item ID: ${itemId}`);
   
       // Update balance after purchase
       await updateBalance(account);
@@ -596,9 +625,9 @@ export default function Home() {
     } catch (error) {
       console.error("Purchase failed:", error);
       if (error.reason) {
-        alert(`Transaction failed: ${error.reason}`);
+         handleAlert('Error',`Transaction failed: ${error.reason}`);
       } else {
-        alert("Transaction failed. Please try again.");
+         handleAlert('Error',"Transaction failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -681,13 +710,13 @@ export default function Home() {
     if (file) {
       // Check file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
-        alert("Logo file size must be less than 5MB");
+         handleAlert('Error',"Logo file size must be less than 5MB");
         e.target.value = '';
         return;
       }
       // Check file type
       if (!file.type.startsWith('image/')) {
-        alert("Please upload an image file");
+         handleAlert('Error',"Please upload an image file");
         e.target.value = '';
         return;
       }
