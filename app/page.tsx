@@ -59,8 +59,8 @@ export default function Home() {
     //initializeEthers();
     loadItems();
   }, []);
-  
-  const  handleAlert = (alert: string,message: string) => {
+
+  const handleAlert = (alert: string, message: string) => {
       if (alert === 'Success') {
       toast.success(message, {
         position: "top-left",
@@ -74,7 +74,7 @@ export default function Home() {
         });
       }
       else if (alert === 'Error') {
-        toast.success(message, {
+        toast.error(message, {
           position: "top-left",
           autoClose: 5000,
           hideProgressBar: false,
