@@ -59,6 +59,7 @@ export default function Home() {
     //initializeEthers();
     loadItems();
   }, []);
+  
   const  handleAlert = (alert: string,message: string) => {
       if (alert === 'Success') {
       toast.success(message, {
