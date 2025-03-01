@@ -101,7 +101,7 @@ export default function Home() {
             method: 'eth_accounts'
           });
           
-          if (accounts.length > 0) {
+          if ((accounts as string[]).length > 0) {
             const provider = await initializeEthers();
             if (!provider) return;
   
