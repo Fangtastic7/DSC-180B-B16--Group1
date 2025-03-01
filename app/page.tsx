@@ -9,7 +9,7 @@ import { Button } from "@/utils/components/ui/button";
 import { Input } from "@/utils/components/ui/input";
 import { Textarea } from "@/utils/components/ui/textarea";
 //import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
-import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download } from 'lucide-react';
+import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download, Search } from 'lucide-react';
 import { Alert, AlertDescription } from "@/utils/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
 import Swal from 'sweetalert2';
@@ -33,7 +33,7 @@ export default function Home() {
   const [account, setAccount] = useState<string>("");
   const [provider, setProvider] = useState<any>(null);
   const [activeTab, setActiveTab] = useState(() => {
-    // Get the saved tab from localStorage or default to 'home'
+    // Get the saved tab from localStorage or default to   'home'
     return localStorage.getItem('activeTab') || 'home';
   });
   const [error, setError] = useState("");
@@ -86,8 +86,6 @@ export default function Home() {
           });
         }
   } 
-
-  
 
   // Add this at the top of your component
   useEffect(() => {
@@ -370,6 +368,12 @@ export default function Home() {
     let uploadedFileCID = null;
     let uploadedLogoCID = null;
     //let uploadedCID = null;
+
+    if (parseFloat(price) < 0.001){
+      handleAlert('Error',"Minimum price is 0.001 ETH");
+      return;
+    }
+
     // Show disclaimer popup
     Swal.fire({
       title: "Important Disclaimer",
@@ -815,7 +819,7 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
         <img
           src={`https://gateway.pinata.cloud/ipfs/${item.logoCid}`}
           alt={item.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain p-0" /* Originally w-full h-full object-cover */
           onError={(e) => {
             e.currentTarget.src = '/images/default_logo.png';
             e.currentTarget.className = 'w-full h-full object-contain p-4';
@@ -883,27 +887,33 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
     {/* Content section with scroll if needed */}
     <CardContent className="flex-1 overflow-y-auto space-y-3 bg-gray-900">
       {/* Metadata Grid */}
-      <div className="grid grid-cols-2 gap-2 text-sm -mt-6"> {/* Added -mt-2 to pull grid up */}
-      <div className="text-gray-400">File Size:</div>
-      <div className="truncate">{formatBytes(item.fileSize)}</div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm -mt-6">
+      {/* Row 1 */}
+      <div className="flex flex-col">
+        <div className="text-gray-400">File Size:</div>
+        <div className="truncate font-medium">{formatBytes(item.fileSize)}</div>
+      </div>
       
-      <div className="text-gray-400">File Type:</div>
-      <div className="truncate">{formatFileType(item.fileType)}</div>
-      
-      {showSalesCount && (
-        <>
-          <div className="text-gray-400">Sales:</div>
-          <div className="truncate">{item.salesCount}</div>
-        </>
+      <div className="flex flex-col">
+        <div className="text-gray-400">File Type:</div>
+        <div className="truncate font-medium">{formatFileType(item.fileType)}</div>
+      </div>
+  
+      {/* Row 2 */}
+      {showSeller && (
+        <div className="flex flex-col">
+          <div className="text-gray-400">Seller:</div>
+          <div className="truncate font-medium" title={item.seller}>
+            {`${item.seller.slice(0, 4)}...${item.seller.slice(-3)}`}
+          </div>
+        </div>
       )}
 
-      {showSeller && (
-        <>
-          <div className="text-gray-400">Seller:</div>
-          <div className="truncate" title={item.seller}>
-            {`${item.seller.slice(0, 6)}...${item.seller.slice(-4)}`}
-          </div>
-        </>
+      {(showSalesCount || !isMyStall) && (
+        <div className="flex flex-col">
+          <div className="text-gray-400">{isMyStall ? 'Sales:' : 'Purchases:'}</div>
+          <div className="truncate font-medium">{item.salesCount}</div>
+        </div>
       )}
     </div>
 
@@ -957,7 +967,7 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
         } flex items-center justify-center space-x-2`}
       >
         <Download className="h-4 w-4" />
-        <span>
+        <span className="font-bold">
           {fetchingId === item.item_cid 
             ? 'Fetching...' 
             : downloadedItems.has(item.item_cid)
@@ -993,6 +1003,7 @@ const renderBrowseContent = () => {
             key={item.id}
             item={item}
             showSeller={true}
+            showSalesCount={true}
             isMyStall={false}
           />
         ))
@@ -1005,7 +1016,14 @@ const renderBrowseContent = () => {
   );
 };
 
-const renderMyStallContent = () => (
+const renderMyStallContent = () => {
+  const filteredItems = dataItems
+  .filter(item => 
+    item.seller.toLowerCase() === account.toLowerCase() &&
+    (item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+  return (
   <div className="relative min-h-[485px]">
     {!account && renderLockScreen()}
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
@@ -1026,8 +1044,14 @@ const renderMyStallContent = () => (
     </div>
   </div>
 );
+};
 
-const renderInventoryContent = () => (
+const renderInventoryContent = () => {
+  const filteredItems = inventoryItems.filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  return (
   <div className="relative min-h-[485px]">
     {!account && renderLockScreen()}
     <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
@@ -1047,6 +1071,7 @@ const renderInventoryContent = () => (
     </div>
   </div>
 );
+};
 
 
 
@@ -1144,14 +1169,14 @@ return (
           className="w-[160px] bg-gray-800 text-white p-2 rounded-md shadow-lg z-50" 
         >
           <DropdownMenuItem 
-            onClick={() => setActiveTab("my-stall")}
+            onClick={() => handleTabChange("my-stall")}
             className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
           >
             <Store className="h-4 w-4" />
             <span>My Stall</span>
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setActiveTab("inventory")}
+            onClick={() => handleTabChange("inventory")}
             className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
           >
             <List className="h-4 w-4" />
@@ -1235,6 +1260,7 @@ return (
             placeholder="0.00"
             className="block w-full text-sm text-gray-300 border border-gray-700 rounded-lg bg-gray-800 p-3 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 transition-all"
           />
+          <p className="mt-1 text-sm text-gray-400">Minimum price: 0.001 ETH</p>
         </div>
 
         {/* Description Input */}
@@ -1324,17 +1350,18 @@ return (
   <div className="space-y-6">
   {/* Flex container for title and search bar */}
   <div className="flex justify-between items-center">
-    <h1 className="text-3xl font-bold text-white">Marketplace</h1>
-
-    {/* Search Bar */}
+  <h1 className="text-3xl font-bold text-white">Marketplace</h1>
+  <div className="relative w-full max-w-md">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
     <input
       type="text"
       placeholder="Search datasets..."
       value={searchQuery}
       onChange={(e) => setSearchQuery(e.target.value)}
-      className="w-full max-w-md p-2 border border-gray-600 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="w-full p-2 pl-10 border border-gray-600 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
   </div>
+</div>
 
   {renderBrowseContent()}
 </div>
@@ -1342,14 +1369,40 @@ return (
 
 {activeTab === 'my-stall' && (
   <div className="space-y-6">
-    <h1 className="text-3xl font-bold text-white">My Stall</h1>
+    {/* Flex container for title and search bar */}
+    <div className="flex justify-between items-center">
+      <h1 className="text-3xl font-bold text-white">My Stall</h1>
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search your listings..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full p-2 pl-10 border border-gray-600 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+</div>
     {renderMyStallContent()}
   </div>
 )}
 
 {activeTab === 'inventory' && (
   <div className="space-y-6">
-    <h1 className="text-3xl font-bold text-white">My Inventory</h1>
+    {/* Flex container for title and search bar */}
+    <div className="flex justify-between items-center">
+      <h1 className="text-3xl font-bold text-white">My Inventory</h1>
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search your purchases..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full p-2 pl-10 border border-gray-600 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+    </div>
     {renderInventoryContent()}
   </div>
 )}
