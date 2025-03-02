@@ -107,6 +107,23 @@ export default function Home() {
         }
   } 
 
+  // Add this to your existing useEffect for ethereum events
+  useEffect(() => {
+    if (typeof window.ethereum !== "undefined") {
+      window.ethereum.on('chainChanged', () => {
+        if (account) {
+          updateBalance(account);
+        }
+      });
+    }
+
+    return () => {
+      if (typeof window.ethereum !== "undefined") {
+        window.ethereum.removeListener('chainChanged', () => {});
+      }
+    };
+  }, [account]);
+
   // Add this at the top of your component
   useEffect(() => {
     const checkWalletConnection = async () => {
@@ -461,6 +478,7 @@ export default function Home() {
         metadata);
       console.log("Transaction sent. Waiting for confirmation...");
       await tx.wait(); // Wait for confirmation
+      await updateBalance(account);
       console.log("Transaction confirmed.");
   
       // 3. Refresh the items list
@@ -480,6 +498,7 @@ export default function Home() {
       setPrice("");
       setDescription("");
       setTitle("")
+      setRemovePii(false);
 
       setUploading(false);
     } catch (error) {
@@ -530,6 +549,7 @@ export default function Home() {
         setPrice("");
         setDescription("");
         setTitle("");
+        setRemovePii(false);
         handleAlert('Error',"Error uploading file");
     }
   }})
@@ -634,17 +654,18 @@ export default function Home() {
       // Wait for transaction confirmation
       await transaction.wait();
   
-      console.log("Transaction confirmed!");
-       handleAlert('Success',`Purchase successful! Item ID: ${itemId}`);
-  
+      //console.log("Transaction confirmed!");
+
       // Update balance after purchase
       await updateBalance(account);
 
+      handleAlert('Success',`Purchase successful! Item ID: ${itemId}`);
+  
       // Refresh inventory after purchase
       // fetchInventory();
   
     } catch (error) {
-      console.error("Purchase failed:", error);
+      //console.error("Purchase failed:", error);
       // Check for user rejection from MetaMask
       if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
         // User rejected the transaction - no need to show an error message
@@ -734,10 +755,15 @@ export default function Home() {
     } else {
       console.log('No logo to delete');
     }
-
+      await updateBalance(account);
       await loadItems();
     } catch (error: any) {
       setError(error.message || "Failed to delist item");
+      if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+        // User rejected the transaction - no need to show an error message
+        console.log("Transaction was rejected by user");
+        return;
+      }
       console.error("Error delisting data:", error);
     } finally {
       setDelisting(null);
@@ -770,9 +796,13 @@ export default function Home() {
   };
 
   const updateBalance = async (account: string) => {
-    if (provider) {
-      const balance = await provider.getBalance(account);
-      setBalance(formatEther(balance));
+    if (provider && account) {
+      try {
+        const balance = await provider.getBalance(account);
+        setBalance(formatEther(balance));
+      } catch (error) {
+        console.error("Error updating balance:", error);
+      }
     }
   };
 
@@ -1062,26 +1092,30 @@ const renderMyStallContent = () => {
      item.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   return (
-  <div className="relative min-h-[485px]">
-    {!account && renderLockScreen()}
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
-      {loading ? (
-        <div className="col-span-full flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : dataItems
-          .filter(item => item.seller.toLowerCase() === account.toLowerCase())
-          .map((item) => (
+    <div className="relative min-h-[485px]">
+      {!account && renderLockScreen()}
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
+        {loading ? (
+          <div className="col-span-full flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : filteredItems.length > 0 ? (
+          filteredItems.map((item) => (
             <ListingCard
               key={item.id}
               item={item}
               showSalesCount={true}
               isMyStall={true}
             />
-          ))}
+          ))
+        ) : (
+          <p className="col-span-full text-center text-gray-400">
+            No matching items found.
+          </p>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 const renderInventoryContent = () => {
@@ -1090,25 +1124,31 @@ const renderInventoryContent = () => {
     item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
   return (
-  <div className="relative min-h-[485px]">
-    {!account && renderLockScreen()}
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
-      {loading ? (
-        <div className="col-span-full flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : inventoryItems.map((item) => (
-        <ListingCard
-          key={item.id}
-          item={item}
-          showSeller={true}
-          showSalesCount={false}
-          isMyInventory={true}
-        />
-      ))}
+    <div className="relative min-h-[485px]">
+      {!account && renderLockScreen()}
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
+        {loading ? (
+          <div className="col-span-full flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : filteredItems.length > 0 ? (
+          filteredItems.map((item) => (
+            <ListingCard
+              key={item.id}
+              item={item}
+              showSeller={true}
+              showSalesCount={false}
+              isMyInventory={true}
+            />
+          ))
+        ) : (
+          <p className="col-span-full text-center text-gray-400">
+            No matching items found.
+          </p>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 
