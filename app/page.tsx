@@ -608,22 +608,18 @@ export default function Home() {
       setLoading(true);
       const contract = await getContract(true);
 
-      // // Fetch past purchase events for the current user
-      // const eventFilter = contract.filters.DataPurchased(itemId, account); 
-      // const events = await contract.queryFilter(eventFilter, 0, "latest");
-
-      // // If user has already purchased, block the transaction
-      // if (events.length > 0) {
-      //   alert("You have already purchased this item!");
-      //   setLoading(false);
-      //   return;
-      // }
-  
       // Fetch the correct price from the contract
       const item = dataItems.find(item => item.id == itemId);
       if (!item) throw new Error("Item not found");
 
       const correctPrice = item.price;  // Price from the contract is already in Wei
+
+      // Check user's balance before attempting purchase
+      const userBalance = await provider.getBalance(account);
+      if (userBalance < correctPrice) {
+        handleAlert('Error', `Insufficient funds. You need more ETH to make this purchase.`);
+        return;
+      }
   
       console.log(`Fetched item price: ${correctPrice.toString()} Wei`);
   
@@ -649,10 +645,32 @@ export default function Home() {
   
     } catch (error) {
       console.error("Purchase failed:", error);
-      if (error.reason) {
-         handleAlert('Error',`Transaction failed: ${error.reason}`);
-      } else {
-         handleAlert('Error',"Transaction failed. Please try again.");
+      // Check for user rejection from MetaMask
+      if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+        // User rejected the transaction - no need to show an error message
+        console.log("Transaction was rejected by user");
+        return;
+      }
+      
+      // Handle other specific error cases
+      if (error.code === 'INSUFFICIENT_FUNDS') {
+        handleAlert('Error', `Insufficient funds to complete this purchase.`);
+      } 
+      // Handle transaction reverted by contract
+      else if (error.code === 'CALL_EXCEPTION') {
+        handleAlert('Error', "Transaction was rejected. This could be because the item is no longer available or there was a contract error");
+      }
+      // Handle network errors
+      else if (error.code === 'NETWORK_ERROR') {
+        handleAlert('Error', "Network error occurred. Please check your connection and try again");
+      }
+      // Handle other contract errors with reason
+      else if (error.reason) {
+        handleAlert('Error', `Transaction failed: ${error.reason}`);
+      }
+      // Fallback error message for unexpected errors
+      else {
+        handleAlert('Error', "Transaction failed. Please try again");
       }
     } finally {
       setLoading(false);
