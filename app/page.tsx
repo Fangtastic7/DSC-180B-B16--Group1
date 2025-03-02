@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { ethers, formatEther, parseEther, toNumber, parseUnits} from "ethers";
+import { ethers, formatEther, toNumber, parseUnits} from "ethers";
 import { getContract } from "@/utils/contract";
 import { MetaMaskInpageProvider } from "@metamask/providers";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/utils/components/ui/card";
@@ -9,12 +9,12 @@ import { Button } from "@/utils/components/ui/button";
 import { Input } from "@/utils/components/ui/input";
 import { Textarea } from "@/utils/components/ui/textarea";
 //import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
-import { AlertCircle, Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download, Search } from 'lucide-react';
-import { Alert, AlertDescription } from "@/utils/components/ui/alert";
+import { Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download, Search } from 'lucide-react';
+//import { Alert, AlertDescription } from "@/utils/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
 import Swal from 'sweetalert2';
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 
 
 declare global {
@@ -32,10 +32,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [account, setAccount] = useState<string>("");
   const [provider, setProvider] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState(() => {
-    // Get the saved tab from localStorage or default to   'home'
-    return localStorage.getItem('activeTab') || 'home';
-  });
+  const [activeTab, setActiveTab] = useState('home');
   const [error, setError] = useState("");
   const [contract, setContract] = useState<any>(null);
   const [delisting, setDelisting] = useState<number | null>(null);
@@ -58,6 +55,29 @@ export default function Home() {
   useEffect(() => {
     //initializeEthers();
     loadItems();
+  }, []);
+
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('activeTab');
+      if (savedTab) {
+        setActiveTab(savedTab);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Only handle beforeunload event
+    const handleBeforeUnload = () => {
+      // Don't clear localStorage here
+    };
+  
+    window.addEventListener('beforeunload', handleBeforeUnload);
+  
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   const handleAlert = (alert: string, message: string) => {
