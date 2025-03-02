@@ -7,21 +7,21 @@ import re
 nlp = spacy.load("en_core_web_sm")
 
 def remove_pii_from_text(text):
-    """Remove PII from text data and return both findings and cleaned text."""
     print(f"Processing text: {text}", file=sys.stderr)
     doc = nlp(str(text))
     pii_findings = []
     cleaned_text = str(text)
 
-    # PII patterns
+    # PII patterns 
     patterns = {
         'email': (r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', '[EMAIL]'),
         'phone': (r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]'),
-        'address': (r'\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)\.?(?:[,]\s*[A-Za-z\s]+)?', '[ADDRESS]'),
-        'username': (r'(?i)(?:username|user):\s*(\w+)', '[USERNAME]')
+        'street_address': (r'\b\d{1,5}\s+\b(?:[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*)\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)\b', '[ADDRESS]'),
+        'username': (r'(?i)(?:username|user):\s*(\w+)', '[USERNAME]'),
+        'ssn': (r'\b\d{3}-\d{2}-\d{4}\b', '[SSN]')
     }
 
-    # Process regex patterns
+    # Apply Regex-Based PII Removal
     for pii_type, (pattern, replacement) in patterns.items():
         matches = re.finditer(pattern, cleaned_text, re.IGNORECASE)
         for match in matches:
@@ -29,12 +29,19 @@ def remove_pii_from_text(text):
             print(f"Found {pii_type}: {match.group()}", file=sys.stderr)
             cleaned_text = cleaned_text.replace(match.group(), replacement)
 
-    # Process SpaCy entities
+    # Apply SpaCy NER 
     for ent in doc.ents:
-        if ent.label_ in ["PERSON", "ORG", "GPE"]:
+        if ent.label_ in ["PERSON", "ORG"]:  # Remove names and organizations
             pii_findings.append(f"Found {ent.label_}: {ent.text}")
             print(f"Found {ent.label_}: {ent.text}", file=sys.stderr)
             cleaned_text = cleaned_text.replace(ent.text, f"[{ent.label_}]")
+
+        # Handle locations (GPE - Geopolitical Entity)
+        if ent.label_ == "GPE":
+            if any(keyword in ent.text.lower() for keyword in ["street", "road", "lane", "blvd", "dr", "ave"]):
+                pii_findings.append(f"Found ADDRESS: {ent.text}")
+                print(f"Found ADDRESS: {ent.text}", file=sys.stderr)
+                cleaned_text = cleaned_text.replace(ent.text, "[ADDRESS]")
 
     print(f"Cleaned text: {cleaned_text}", file=sys.stderr)
     return pii_findings, cleaned_text
