@@ -502,9 +502,46 @@ export default function Home() {
 
       setUploading(false);
     } catch (error) {
+      if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+        // User rejected the transaction - clean up IPFS files before returning
+        if (uploadedFileCID) {
+          try {
+            await fetch(`/api/files?cid=${uploadedFileCID}`, {
+              method: 'DELETE'
+            });
+          } catch (unpinError) {
+            console.error('Error deleting main file:', unpinError);
+          }
+        }
+    
+        if (uploadedLogoCID) {
+          try {
+            await fetch(`/api/files?cid=${uploadedLogoCID}`, {
+              method: 'DELETE'
+            });
+          } catch (unpinError) {
+            console.error('Error deleting logo:', unpinError);
+          }
+        }
+    
+        // Clear form
+        setFile(null);
+        setLogo(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        if (logoInputRef.current) {
+          logoInputRef.current.value = '';
+        }
+        setPrice("");
+        setDescription("");
+        setTitle("");
+        setRemovePii(false);
+        setUploading(false);
+        return;
+      }
       console.error("Error in uploadFile:", error);
-      setUploading(false);
-
+      
         // Always try to unpin the main file if it was uploaded
       if (uploadedFileCID) {
         try {
@@ -551,6 +588,8 @@ export default function Home() {
         setTitle("");
         setRemovePii(false);
         handleAlert('Error',"Error uploading file");
+    } finally {
+      setUploading(false);
     }
   }})
   };
