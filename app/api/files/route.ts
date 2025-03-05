@@ -1,7 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { pinata } from "@/utils/config"; // Pinata configuration
-import { getContract } from "@/utils/contract"; // Contract helper
-import { parseEther } from "ethers";
 import { v4 as uuidv4 } from "uuid"; // Install 'uuid' for generating unique IDs
 import path from "path";
 import { promisify } from "util";

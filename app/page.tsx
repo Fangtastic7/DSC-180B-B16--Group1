@@ -8,9 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/uti
 import { Button } from "@/utils/components/ui/button";
 import { Input } from "@/utils/components/ui/input";
 import { Textarea } from "@/utils/components/ui/textarea";
-//import {MarketplaceHeader} from "@/utils/components/ui/MarketplaceHeader";
 import { Upload, ShoppingCart, List, Loader2, Trash2, Store, Plus, X , LogOut, Download, Search } from 'lucide-react';
-//import { Alert, AlertDescription } from "@/utils/components/ui/alert";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/utils/components/ui/DropdownMenu";
 import Swal from 'sweetalert2';
 import { motion } from "framer-motion";
@@ -919,9 +917,9 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
   const isPurchased = purchasedItems.has(item.id);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   return(
-  <Card key={item.id} className="overflow-hidden h-[550px] flex flex-col bg-gray-900"> {/* Fixed height and flex column */}
+  <Card key={item.id} className="overflow-hidden h-auto min-h-[550px] flex flex-col bg-gray-900"> {/* Fixed height and flex column */}
     {/* Logo/Image Section - Fixed height */}
-    <div className="w-full h-48 bg-gray-800 relative flex-shrink-0"> {/* flex-shrink-0 prevents compression */}
+    <div className="w-full h-36 sm:h-48 bg-gray-800 relative flex-shrink-0"> {/* flex-shrink-0 prevents compression */}
       {item.logoCid ? (
         <img
           src={`https://gateway.pinata.cloud/ipfs/${item.logoCid}`}
@@ -942,7 +940,7 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
     </div>
 
     {/* Expandable Title */}
-    <CardHeader className="flex-shrink-0 bg-gray-900">
+    <CardHeader className="flex-shrink-0 bg-gray-900 p-4 sm:p-6">
       <div className="group relative">
         <CardTitle className="text-xl font-bold truncate">
           {item.title}
@@ -992,7 +990,7 @@ const ListingCard = ({ item, showSeller = false, showSalesCount = false, isMySta
     </CardHeader>
 
     {/* Content section with scroll if needed */}
-    <CardContent className="flex-1 overflow-y-auto space-y-3 bg-gray-900">
+    <CardContent className="flex-1 overflow-y-auto space-y-3 bg-gray-900 p-4 sm:p-6">
       {/* Metadata Grid */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm -mt-6">
       {/* Row 1 */}
@@ -1099,7 +1097,7 @@ const renderBrowseContent = () => {
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
       {loading ? (
         <div className="col-span-full flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin" />
@@ -1133,7 +1131,7 @@ const renderMyStallContent = () => {
   return (
     <div className="relative min-h-[485px]">
       {!account && renderLockScreen()}
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 ${!account ? 'blur-sm' : ''}`}>
         {loading ? (
           <div className="col-span-full flex justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -1165,7 +1163,7 @@ const renderInventoryContent = () => {
   return (
     <div className="relative min-h-[485px]">
       {!account && renderLockScreen()}
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!account ? 'blur-sm' : ''}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 ${!account ? 'blur-sm' : ''}`}>
         {loading ? (
           <div className="col-span-full flex justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -1201,9 +1199,9 @@ return (
     <div className="relative z-10 min-h-screen text-white">
       {/* Navigation bar with semi-transparent background */}
       <div className="sticky top-0 bg-gray-900/75 backdrop-blur-sm border-b border-gray-800 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-      <div className="flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0">
       {/* Clickable Logo */}
       <div 
         className="bg-gray-900 flex items-center cursor-pointer hover:opacity-80 transition-all duration-200"
@@ -1215,7 +1213,7 @@ return (
         />
       </div>
     {/* Navigation Buttons */}
-    <div className="flex gap-4 ml-4">
+    <div className="flex gap-2 sm:gap-4 sm:ml-4">
       <Button 
         variant="ghost"
         onClick={() => handleTabChange('browse')}
@@ -1250,14 +1248,14 @@ return (
   </div>
 
   {!account ? (
-    <Button onClick={connectWallet} variant="outline" className = "w-[160px] border border-white text-white hover:bg-gray-800 hover:text-white transition-all duration-200 font-bold">
+    <Button onClick={connectWallet} variant="outline" className = "w-full sm:w-[160px] border border-white text-white hover:bg-gray-800 hover:text-white transition-all duration-200 font-bold">
       Connect Wallet
     </Button>
   ) : (
-    <div className="flex items-center text-white space-x-4">
+    <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
       {/* Network and Balance info */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex items-center space-x-2 group">
+      <div className="flex items-center space-x-4 w-full sm:w-auto justify-center sm:justify-start">
+        <div className="relative flex items-center space-x-2 group text-sm sm:text-base">
           <span className="font-bold">{network.toUpperCase()}</span>
           <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
             <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">
@@ -1265,7 +1263,7 @@ return (
             </span>
           </div>
         </div>
-        <div className="relative flex items-center space-x-2 group">
+        <div className="relative flex items-center space-x-2 group text-sm sm:text-base">
           <span className="font-bold">{parseFloat(balance).toFixed(2)} {currency}</span>
           <div className="absolute top-full mt-2 flex flex-col items-center hidden group-hover:flex">
             <span className="relative z-10 p-2 text-xs leading-none text-white whitespace-no-wrap bg-black shadow-lg rounded-md">
@@ -1276,9 +1274,9 @@ return (
       </div>
 
       {/* Dropdown Menu */}
-      <div className="relative">
+      <div className="w-full sm:w-auto">
         <DropdownMenu>
-          <DropdownMenuTrigger className="w-[160px] px-4 py-2 border rounded cursor-pointer hover:text-white hover:bg-gray-800 transition-all duration-200 font-bold">
+          <DropdownMenuTrigger className="w-full sm:w-[160px] px-4 py-2 border rounded cursor-pointer hover:text-white hover:bg-gray-800 transition-all duration-200 font-bold text-sm sm:text-base">
             {account.slice(0, 6)}...{account.slice(-4)}
           </DropdownMenuTrigger>
           <DropdownMenuContent 
@@ -1321,8 +1319,8 @@ return (
     <h1 className="text-3xl font-bold text-white">Upload Data</h1>
     <div className="relative min-h-[485px]">
     {!account && renderLockScreen()}
-    <Card className={`max-w-2xl mx-auto bg-gray-900 shadow-lg rounded-lg ${!account ? 'blur-sm' : ''}`}>
-      <CardContent className="p-8 space-y-6">
+    <Card className={`w-full max-w-2xl mx-auto bg-gray-900 shadow-lg rounded-lg ${!account ? 'blur-sm' : ''}`}>
+      <CardContent className="p-4 sm:p-8 space-y-4 sm:space-y-6">
         <h2 className="text-2xl font-bold text-white text-center mb-6">Upload Data For Sale</h2>
 
         {/* Logo Upload */}
@@ -1419,10 +1417,10 @@ return (
 )}
 
 {activeTab === 'home' && (
-  <div className="min-h-screen flex flex-col items-center justify-center text-center bg-hero bg-cover bg-center bg-no-repeat text-white p-6">
+  <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 sm:p-6">
     {/* Title with fade-in effect */}
     <motion.h1 
-      className="text-6xl font-bold leading-tight"
+      className="text-4xl sm:text-6xl font-bold leading-tight"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 2 }}
@@ -1432,7 +1430,7 @@ return (
 
     {/* Subtitle with slight delay */}
     <motion.p 
-      className="text-xl text-gray-300 max-w-xl"
+      className="text-lg sm:text-xl text-gray-300 max-w-xl mt-4"
       initial={{ opacity: 0, y: -10 }} 
       animate={{ opacity: 1, y: 0 }} 
       transition={{ duration: 1, delay: 1 }}
@@ -1442,7 +1440,7 @@ return (
 
     {/* Buttons with delay after text appears */}
     <motion.div 
-      className="mt-6 flex space-x-4"
+      className="mt-6 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 1, delay: 1 }}
@@ -1466,8 +1464,8 @@ return (
 {activeTab === 'browse' && (
   <div className="space-y-6">
   {/* Flex container for title and search bar */}
-  <div className="flex justify-between items-center">
-  <h1 className="text-3xl font-bold text-white">Marketplace</h1>
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+  <h1 className="text-2xl sm:text-3xl font-bold text-white">Marketplace</h1>
   <div className="relative w-full max-w-md">
     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
     <input

@@ -1,7 +1,6 @@
-import { JsonRpcProvider, Wallet, BrowserProvider, Contract } from "ethers";
+import { JsonRpcProvider, BrowserProvider, Contract } from "ethers";
 
 const CONTRACT_ADDRESS = "0xEA65886C47E01FeD0290A5343Ec0DeC00f8e0218";
-//"0x91754F470b7612490176B89681938036C7caB01D";
 
 const CONTRACT_ABI = [
     {
