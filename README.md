@@ -3,7 +3,7 @@
 Please follow the step below for reproduction.
 
 1. Be noticed, the files we shared inside repo for frontend is not sufficient to reproduce the project, those are for code reference only. because our folder is too large for the github repo, so we have to share the complete file using google drive link, Please download the folder here: (It may take you 5-10 minutes to download)
-[https://drive.google.com/file/d/1t0D8806JRvZPb8PVHfB-MoKvkpscbTjY/view?usp=sharing](https://drive.google.com/drive/folders/1Rejashr-dkWUFynzehHpEyZGbv6Yrteu?usp=drive_link)
+[https://drive.google.com/drive/folders/1Rejashr-dkWUFynzehHpEyZGbv6Yrteu?usp=drive_link]
 
 2. Then, go to the directory `pinata-nextjs` in the terminal, making sure you have python 3.7 - python 3.12 (spacy is incompatible as of now with python 3.13), run `rm -rf node_modules package-lock.json`, then run `npm install`，run `pip install spacy` and `python -m spacy download en_core_web_sm`, finally run `npm run dev`, you should be able to see the page at http://localhost:3000/
 3. Once the local server is setup, it is important to setup Metamask
