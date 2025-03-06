@@ -226,7 +226,24 @@ export default function Home() {
   };
 
   const initializeEthers = async () => {
-    if (typeof window.ethereum !== "undefined") {
+    if (typeof window.ethereum === "undefined") {
+      // Show alert for metamask installation
+      Swal.fire({
+        title: "MetaMask Required",
+        text: "Please install MetaMask to use this application",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Install MetaMask",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.open("https://metamask.io/download/", "_blank");
+        }
+      });
+      return;
+    }
       try {
         console.log('RPC URL:', process.env.NEXT_PUBLIC_AMOY_RPC_URL);
         console.log('Private Key length:', process.env.NEXT_PUBLIC_PRIVATE_KEY?.length);
@@ -279,12 +296,9 @@ export default function Home() {
         if (error.code === 4001) {
           console.log("User rejected the request");
         } else {
-          handleAlert('Error',"An error occurred. Please try again.");
+          handleAlert('Error', "An error occurred. Please try again.");
         }
       }
-    } else {
-      handleAlert('Error,',"Please install MetaMask!");
-    }
   };
 
   // Connect wallet function
@@ -1198,7 +1212,7 @@ return (
     {/* Main content container */}
     <div className="relative z-10 min-h-screen text-white">
       {/* Navigation bar with semi-transparent background */}
-      <div className="sticky top-0 bg-gray-900/75 backdrop-blur-sm border-b border-gray-800 z-50">
+      <div className="sticky top-0 bg-gray-900/95 border-b border-gray-800 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
       <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0">
@@ -1280,31 +1294,31 @@ return (
             {account.slice(0, 6)}...{account.slice(-4)}
           </DropdownMenuTrigger>
           <DropdownMenuContent 
-          align="end" 
-          className="w-[160px] bg-gray-800 text-white p-2 rounded-md shadow-lg z-50" 
-        >
-          <DropdownMenuItem 
-            onClick={() => handleTabChange("my-stall")}
-            className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
+            align="end" 
+            className="w-[calc(100vw-2rem)] sm:w-[160px] bg-gray-900 text-white p-2 rounded-md shadow-lg z-[100]" 
           >
-            <Store className="h-4 w-4" />
-            <span>My Stall</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => handleTabChange("inventory")}
-            className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
-          >
-            <List className="h-4 w-4" />
-            <span>Inventory</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={disconnectWallet} 
-            className="flex items-center space-x-2 px-3 py-2 hover:bg-red-600 text-red-500 hover:text-white rounded-md cursor-pointer"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+            <DropdownMenuItem 
+              onClick={() => handleTabChange("my-stall")}
+              className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
+            >
+              <Store className="h-4 w-4" />
+              <span>My Stall</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleTabChange("inventory")}
+              className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-700 rounded-md cursor-pointer"
+            >
+              <List className="h-4 w-4" />
+              <span>Inventory</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={disconnectWallet} 
+              className="flex items-center space-x-2 px-3 py-2 hover:bg-red-600 text-red-500 hover:text-white rounded-md cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </div>
